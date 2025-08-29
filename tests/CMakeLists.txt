@@ -1,0 +1,5 @@
+enable_testing()
+find_package(Catch2 3 REQUIRED)
+add_executable(unit-test test_config.cpp)
+target_link_libraries(unit-test Catch2::Catch2WithMain)
+add_test(NAME unit COMMAND unit-test)
