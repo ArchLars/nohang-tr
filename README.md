@@ -24,3 +24,7 @@ ctest --test-dir build
 ```bash
 ./build/nohang-tr
 ```
+
+Config
+
+See config/nohang-tr.example.toml. It defines thresholds and colors that the tray uses to compute states against current /proc values. PSI and /proc/meminfo are read to estimate risk and show a color shield.
