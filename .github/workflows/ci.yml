@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache APT archives
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
+          key: ${{ runner.os }}-apt-${{ hashFiles('apt-packages.txt') }}
+
+      - name: Prepare APT cache and install deps
+        run: |
+          sudo apt-get update -y
+          xargs -a apt-packages.txt sudo apt-get -yq --download-only install
+          xargs -a apt-packages.txt sudo apt-get -yq install
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -- -v
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
