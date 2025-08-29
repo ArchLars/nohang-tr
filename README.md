@@ -10,7 +10,7 @@ A DE-agnostic system tray for `nohang`, showing live memory pressure and when ac
 - libayatana-appindicator3 (for GNOME compatibility)
 - Catch2 for tests
 
-Install on Ubuntu CI (see apt-packages.txt). On GNOME, AppIndicator support may be required. :contentReference[oaicite:4]{index=4}
+Install on Ubuntu CI (see apt-packages.txt). On GNOME, AppIndicator support may be required. 
 
 ## Build
 
