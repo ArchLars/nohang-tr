@@ -18,3 +18,9 @@ Install on Ubuntu CI (see apt-packages.txt). On GNOME, AppIndicator support may 
 cmake -S . -B build -G Ninja
 cmake --build build
 ctest --test-dir build
+```
+
+## RUN
+```bash
+./build/nohang-tr
+```
