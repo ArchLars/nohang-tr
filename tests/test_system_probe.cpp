@@ -108,6 +108,35 @@ TEST_CASE("sample reads from provided paths") {
     CHECK(s->full.total == 8);
 }
 
+TEST_CASE("sample continues after source files removed") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_removed";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    fs::path psi = dir / "pressure";
+    {
+        std::ofstream out(mem);
+        out << "MemTotal: 456 kB\n";
+        out << "MemAvailable: 123 kB\n";
+    }
+    {
+        std::ofstream out(psi);
+        out << "some avg10=1 avg60=2 avg300=3 total=4\n";
+        out << "full avg10=5 avg60=6 avg300=7 total=8\n";
+    }
+    SystemProbe probe(mem.string(), psi.string());
+    fs::remove(mem);
+    fs::remove(psi);
+    auto s = probe.sample();
+    REQUIRE(s);
+    REQUIRE(s->mem_available_kib);
+    REQUIRE(s->mem_total_kib);
+    CHECK(*s->mem_available_kib == 123);
+    CHECK(*s->mem_total_kib == 456);
+    CHECK(s->some.total == 4);
+    CHECK(s->full.total == 8);
+}
+
 TEST_CASE("enableTriggers writes thresholds") {
     namespace fs = std::filesystem;
     fs::path dir = fs::temp_directory_path() / "psi_triggers";
@@ -152,7 +181,7 @@ TEST_CASE("sample logs missing PSI file") {
     auto s = probe.sample();
     std::cerr.rdbuf(old);
     REQUIRE_FALSE(s);
-    CHECK(err.str().find("not found") != std::string::npos);
+    CHECK(err.str().find("cannot open") != std::string::npos);
 }
 
 TEST_CASE("sample logs incomplete PSI data") {
