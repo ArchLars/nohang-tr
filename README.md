@@ -27,6 +27,20 @@ ctest --test-dir build/tests
 gcovr -r . --exclude build -e src/main.cpp
 ```
 
+## Restoring manpages on minimal Ubuntu/Debian
+
+Minimal Ubuntu or Debian installations remove manual pages and other documentation. Before building, restore them with:
+
+```bash
+sudo unminimize
+```
+
+This reinstalls documentation and necessary packages. After it completes, verify the manual page is available:
+
+```bash
+man unminimize
+```
+
 ## RUN
 ```bash
 ./build/nohang-tr
