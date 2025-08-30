@@ -37,9 +37,9 @@ public:
     };
 
     /**
-     * @brief Build tooltip text from a probe sample.
+     * @brief Build tooltip text from a probe sample and configuration.
      */
-    static QString buildTooltip(const ProbeSample& s);
+    static QString buildTooltip(const ProbeSample& s, const AppConfig& cfg);
 
     /**
      * @brief Decide next state based on a sample and previous state.

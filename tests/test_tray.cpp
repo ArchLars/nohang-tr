@@ -41,10 +41,12 @@ TEST_CASE("buildTooltip formats values") {
     s.mem_available_kib = 1234;
     s.some.avg10 = 0.5;
     s.some.avg60 = 1.5;
-    auto tooltip = Tray::buildTooltip(s).toStdString();
+    AppConfig cfg;
+    auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
     REQUIRE(tooltip.find("MemAvailable: 1234 KiB") != std::string::npos);
     REQUIRE(tooltip.find("PSI some avg10: 0.50") != std::string::npos);
-    REQUIRE(tooltip.find("PSI some avg60: 1.50") != std::string::npos);
+    REQUIRE(tooltip.find("warn") != std::string::npos);
+    REQUIRE(tooltip.find("crit") != std::string::npos);
 }
 
 TEST_CASE("decide returns expected state") {
@@ -123,7 +125,7 @@ TEST_CASE("refresh sets icon color for each state") {
         Tray tray(nullptr, std::make_unique<StubProbe>(s));
         applyPalette(tray);
         tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s));
+        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
     }
 
     SECTION("yellow") {
@@ -133,7 +135,7 @@ TEST_CASE("refresh sets icon color for each state") {
         Tray tray(nullptr, std::make_unique<StubProbe>(s));
         applyPalette(tray);
         tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s));
+        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
     }
 
     SECTION("orange") {
@@ -143,7 +145,7 @@ TEST_CASE("refresh sets icon color for each state") {
         Tray tray(nullptr, std::make_unique<StubProbe>(s));
         applyPalette(tray);
         tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s));
+        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
     }
 
     SECTION("red") {
@@ -152,6 +154,6 @@ TEST_CASE("refresh sets icon color for each state") {
         Tray tray(nullptr, std::make_unique<StubProbe>(s));
         applyPalette(tray);
         tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s));
+        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
     }
 }
