@@ -1,243 +1,265 @@
-#include <catch2/catch_all.hpp>
 #include <QApplication>
 #include <QDir>
 #include <QIcon>
-#include <memory>
+#include <catch2/catch_all.hpp>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #define private public
 #include "tray.h"
 #undef private
 
 namespace {
 std::unique_ptr<QApplication> app = [] {
-    qputenv("QT_QPA_PLATFORM", "offscreen");
-    int argc = 0;
-    char* argv[] = { (char*)"test", nullptr };
-    return std::make_unique<QApplication>(argc, argv);
+  qputenv("QT_QPA_PLATFORM", "offscreen");
+  int argc = 0;
+  char *argv[] = {(char *)"test", nullptr};
+  return std::make_unique<QApplication>(argc, argv);
 }();
 
-QString resourcePath(const QString& relative) {
-    QDir root(QCoreApplication::applicationDirPath());
-    root.cd("..");
-    root.cd("..");
-    return root.filePath(relative);
+QString resourcePath(const QString &relative) {
+  QDir root(QCoreApplication::applicationDirPath());
+  root.cd("..");
+  root.cd("..");
+  return root.filePath(relative);
 }
 
-void applyPalette(Tray& tray) {
-    tray.cfg_.palette.green = resourcePath("res/icons/shield-green.svg");
-    tray.cfg_.palette.yellow = resourcePath("res/icons/shield-yellow.svg");
-    tray.cfg_.palette.orange = resourcePath("res/icons/shield-orange.svg");
-    tray.cfg_.palette.red = resourcePath("res/icons/shield-red.svg");
+void applyPalette(Tray &tray) {
+  tray.cfg_.palette.green = resourcePath("res/icons/shield-green.svg");
+  tray.cfg_.palette.yellow = resourcePath("res/icons/shield-yellow.svg");
+  tray.cfg_.palette.orange = resourcePath("res/icons/shield-orange.svg");
+  tray.cfg_.palette.red = resourcePath("res/icons/shield-red.svg");
 }
 
 struct StubProbe : SystemProbe {
-    ProbeSample s;
-    explicit StubProbe(const ProbeSample& sample) : s(sample) {}
-    std::optional<ProbeSample> sample() const override { return s; }
+  ProbeSample s;
+  explicit StubProbe(const ProbeSample &sample) : s(sample) {}
+  std::optional<ProbeSample> sample() const override { return s; }
 };
 } // namespace
 
 TEST_CASE("buildTooltip formats values") {
-    ProbeSample s;
-    s.mem_available_kib = 1234;
-    s.some.avg10 = 0.5;
-    s.some.avg60 = 1.5;
-    s.full.avg10 = 1.5;
-    AppConfig cfg;
-    auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tooltip.find("MemAvailable: 1.2 MiB") != std::string::npos);
-    REQUIRE(tooltip.find("warn 512.0 MiB") != std::string::npos);
-    REQUIRE(tooltip.find("crit 256.0 MiB") != std::string::npos);
-    REQUIRE(tooltip.find("PSI some avg10: 0.50 (warn 0.50, crit 1.00)") != std::string::npos);
-    REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
+  ProbeSample s;
+  s.mem_available_kib = 1234;
+  s.some.avg10 = 0.5;
+  s.some.avg60 = 1.5;
+  s.full.avg10 = 1.5;
+  AppConfig cfg;
+  auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
+  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB") != std::string::npos);
+  REQUIRE(tooltip.find("warn 512.0 MiB") != std::string::npos);
+  REQUIRE(tooltip.find("crit 256.0 MiB") != std::string::npos);
+  REQUIRE(tooltip.find("PSI some avg10: 0.50 (warn 0.50, crit 1.00)") !=
+          std::string::npos);
+  REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
 }
 
 TEST_CASE("buildTooltip indicates config source") {
-    ProbeSample s; // defaults ok
-    AppConfig cfg;
-    auto tip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tip.find("Config: default") != std::string::npos);
+  ProbeSample s; // defaults ok
+  AppConfig cfg;
+  auto tip = Tray::buildTooltip(s, cfg).toStdString();
+  REQUIRE(tip.find("Config: default") != std::string::npos);
 
-    cfg.source = AppConfig::Source::Nohang;
-    tip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tip.find("Config: nohang") != std::string::npos);
+  cfg.source = AppConfig::Source::Nohang;
+  tip = Tray::buildTooltip(s, cfg).toStdString();
+  REQUIRE(tip.find("Config: nohang") != std::string::npos);
 }
 
 TEST_CASE("buildTooltip fills bars as memory becomes scarce") {
-    AppConfig cfg;
-    ProbeSample s;
+  AppConfig cfg;
+  ProbeSample s;
 
-    s.mem_available_kib = cfg.mem.available_warn_kib * 2;
-    auto tip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tip.find("warn 512.0 MiB [░░░░░░░░░░] 0%") != std::string::npos);
+  s.mem_available_kib = cfg.mem.available_warn_kib * 2;
+  auto tip = Tray::buildTooltip(s, cfg).toStdString();
+  REQUIRE(tip.find("warn 512.0 MiB [░░░░░░░░░░] 0%") != std::string::npos);
 
-    s.mem_available_kib = 0;
-    tip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tip.find("warn 512.0 MiB [██████████] 100%") != std::string::npos);
+  s.mem_available_kib = 0;
+  tip = Tray::buildTooltip(s, cfg).toStdString();
+  REQUIRE(tip.find("warn 512.0 MiB [██████████] 100%") != std::string::npos);
 }
 
 TEST_CASE("decide returns expected state") {
-    AppConfig cfg;
-    ProbeSample s;
-    s.mem_available_kib = cfg.mem.available_crit_kib - 1;
-    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Red);
-    s.mem_available_kib = cfg.mem.available_warn_kib - 1;
-    s.some.avg10 = 0.0;
-    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Orange);
-    s.mem_available_kib = cfg.mem.available_warn_kib + 1;
-    s.some.avg10 = cfg.psi.avg10_warn + 0.1;
-    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Yellow);
-    s.some.avg10 = cfg.psi.avg10_warn - 0.1;
-    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Green);
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_crit_kib - 1;
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Red);
+  s.mem_available_kib = cfg.mem.available_warn_kib - 1;
+  s.some.avg10 = 0.0;
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Orange);
+  s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+  s.some.avg10 = cfg.psi.avg10_warn + 0.1;
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Yellow);
+  s.some.avg10 = cfg.psi.avg10_warn - 0.1;
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Green);
+}
+
+TEST_CASE("decide warns before reaching memory threshold") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.some.avg10 = 0.0;
+  s.mem_available_kib =
+      cfg.mem.available_warn_exit_kib - 1; // within margin above warn
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Yellow);
 }
 
 TEST_CASE("hysteresis prevents state flapping") {
-    AppConfig cfg;
+  AppConfig cfg;
 
-    SECTION("psi warn") {
-        cfg.psi.avg10_warn = 0.5;
-        cfg.psi.avg10_warn_exit = 0.4;
-        ProbeSample s;
-        s.mem_available_kib = cfg.mem.available_warn_kib + 1;
-        s.some.avg10 = 0.51;
-        auto state = Tray::decide(s, cfg, Tray::State::Green);
-        REQUIRE(state == Tray::State::Yellow);
-        s.some.avg10 = 0.45; // between enter and exit
-        state = Tray::decide(s, cfg, state);
-        REQUIRE(state == Tray::State::Yellow);
-        s.some.avg10 = 0.39; // below exit
-        state = Tray::decide(s, cfg, state);
-        REQUIRE(state == Tray::State::Green);
-        s.some.avg10 = 0.45; // between enter and exit
-        state = Tray::decide(s, cfg, state);
-        REQUIRE(state == Tray::State::Green);
-    }
+  SECTION("psi warn") {
+    cfg.psi.avg10_warn = 0.5;
+    cfg.psi.avg10_warn_exit = 0.4;
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+    s.some.avg10 = 0.51;
+    auto state = Tray::decide(s, cfg, Tray::State::Green);
+    REQUIRE(state == Tray::State::Yellow);
+    s.some.avg10 = 0.45; // between enter and exit
+    state = Tray::decide(s, cfg, state);
+    REQUIRE(state == Tray::State::Yellow);
+    s.some.avg10 = 0.39; // below exit
+    state = Tray::decide(s, cfg, state);
+    REQUIRE(state == Tray::State::Green);
+    s.some.avg10 = 0.45; // between enter and exit
+    state = Tray::decide(s, cfg, state);
+    REQUIRE(state == Tray::State::Green);
+  }
 
-    SECTION("mem warn") {
-        cfg.mem.available_warn_kib = 512 * 1024;
-        cfg.mem.available_warn_exit_kib = cfg.mem.available_warn_kib + 1024;
-        ProbeSample s;
-        s.some.avg10 = 0.0;
-        s.mem_available_kib = cfg.mem.available_warn_kib - 1;
-        auto state = Tray::decide(s, cfg, Tray::State::Green);
-        REQUIRE(state == Tray::State::Orange);
-        s.mem_available_kib = cfg.mem.available_warn_kib + 512; // between enter and exit
-        state = Tray::decide(s, cfg, state);
-        REQUIRE(state == Tray::State::Orange);
-        s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
-        state = Tray::decide(s, cfg, state);
-        REQUIRE(state == Tray::State::Green);
-        s.mem_available_kib = cfg.mem.available_warn_exit_kib - 1; // between thresholds
-        state = Tray::decide(s, cfg, state);
-        REQUIRE(state == Tray::State::Green);
-    }
+  SECTION("mem warn") {
+    cfg.mem.available_warn_kib = 512 * 1024;
+    cfg.mem.available_warn_exit_kib = cfg.mem.available_warn_kib + 1024;
+    ProbeSample s;
+    s.some.avg10 = 0.0;
+    s.mem_available_kib = cfg.mem.available_warn_kib - 1;
+    auto state = Tray::decide(s, cfg, Tray::State::Green);
+    REQUIRE(state == Tray::State::Orange);
+    s.mem_available_kib =
+        cfg.mem.available_warn_kib + 512; // between enter and exit
+    state = Tray::decide(s, cfg, state);
+    REQUIRE(state == Tray::State::Orange);
+    s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+    state = Tray::decide(s, cfg, state);
+    REQUIRE(state == Tray::State::Green);
+    s.mem_available_kib =
+        cfg.mem.available_warn_exit_kib - 1; // between thresholds
+    state = Tray::decide(s, cfg, state);
+    REQUIRE(state == Tray::State::Yellow);
+  }
 }
 
 TEST_CASE("Tray enables configured PSI triggers") {
-    namespace fs = std::filesystem;
-    fs::path dir = fs::temp_directory_path() / "tray_triggers";
-    fs::remove_all(dir);
-    fs::create_directories(dir);
-    fs::path mem = dir / "meminfo";
-    fs::path psi = dir / "pressure";
-    {
-        std::ofstream(mem.string());
-    }
-    {
-        std::ofstream(psi.string());
-    }
-    fs::path cfg = dir / "config.toml";
-    {
-        std::ofstream out(cfg);
-        out << "[psi.trigger]\n";
-        out << "some = 10 100\n";
-        out << "full = 20 200\n";
-    }
-    auto probe = std::make_unique<SystemProbe>(mem.string(), psi.string());
-    Tray tray(nullptr, std::move(probe), QString::fromStdString(cfg.string()));
-    std::ifstream in(psi);
-    std::string line1, line2;
-    std::getline(in, line1);
-    std::getline(in, line2);
-    REQUIRE(line1 == "some 10 100");
-    REQUIRE(line2 == "full 20 200");
+  namespace fs = std::filesystem;
+  fs::path dir = fs::temp_directory_path() / "tray_triggers";
+  fs::remove_all(dir);
+  fs::create_directories(dir);
+  fs::path mem = dir / "meminfo";
+  fs::path psi = dir / "pressure";
+  {
+    std::ofstream(mem.string());
+  }
+  {
+    std::ofstream(psi.string());
+  }
+  fs::path cfg = dir / "config.toml";
+  {
+    std::ofstream out(cfg);
+    out << "[psi.trigger]\n";
+    out << "some = 10 100\n";
+    out << "full = 20 200\n";
+  }
+  auto probe = std::make_unique<SystemProbe>(mem.string(), psi.string());
+  Tray tray(nullptr, std::move(probe), QString::fromStdString(cfg.string()));
+  std::ifstream in(psi);
+  std::string line1, line2;
+  std::getline(in, line1);
+  std::getline(in, line2);
+  REQUIRE(line1 == "some 10 100");
+  REQUIRE(line2 == "full 20 200");
 }
 
 TEST_CASE("Tray skips enabling PSI triggers when none configured") {
-    namespace fs = std::filesystem;
-    fs::path dir = fs::temp_directory_path() / "tray_no_triggers";
-    fs::remove_all(dir);
-    fs::create_directories(dir);
-    fs::path mem = dir / "meminfo";
-    fs::path psi = dir / "pressure";
-    {
-        std::ofstream(mem.string());
-    }
-    {
-        std::ofstream(psi.string());
-    }
-    fs::path cfg = dir / "config.toml";
-    {
-        std::ofstream(cfg.string());
-    }
-    auto probe = std::make_unique<SystemProbe>(mem.string(), psi.string());
-    {
-        Tray tray(nullptr, std::move(probe), QString::fromStdString(cfg.string()));
-    }
-    std::ifstream in(psi);
-    std::string line;
-    REQUIRE_FALSE(std::getline(in, line));
+  namespace fs = std::filesystem;
+  fs::path dir = fs::temp_directory_path() / "tray_no_triggers";
+  fs::remove_all(dir);
+  fs::create_directories(dir);
+  fs::path mem = dir / "meminfo";
+  fs::path psi = dir / "pressure";
+  {
+    std::ofstream(mem.string());
+  }
+  {
+    std::ofstream(psi.string());
+  }
+  fs::path cfg = dir / "config.toml";
+  {
+    std::ofstream(cfg.string());
+  }
+  auto probe = std::make_unique<SystemProbe>(mem.string(), psi.string());
+  {
+    Tray tray(nullptr, std::move(probe), QString::fromStdString(cfg.string()));
+  }
+  std::ifstream in(psi);
+  std::string line;
+  REQUIRE_FALSE(std::getline(in, line));
 }
 
 TEST_CASE("Tray show makes icon visible and starts timer") {
-    ProbeSample s; // defaults ok
-    Tray tray(nullptr, std::make_unique<StubProbe>(s));
-    applyPalette(tray);
-    tray.show();
-    CHECK(tray.icon_.isVisible());
-    CHECK(tray.timer_.isActive());
+  ProbeSample s; // defaults ok
+  Tray tray(nullptr, std::make_unique<StubProbe>(s));
+  applyPalette(tray);
+  tray.show();
+  CHECK(tray.icon_.isVisible());
+  CHECK(tray.timer_.isActive());
 }
 
 TEST_CASE("refresh sets icon color for each state") {
-    AppConfig cfg;
+  AppConfig cfg;
 
-    SECTION("green") {
-        ProbeSample s;
-        s.mem_available_kib = cfg.mem.available_warn_kib + 1;
-        s.some.avg10 = cfg.psi.avg10_warn - 0.1;
-        Tray tray(nullptr, std::make_unique<StubProbe>(s));
-        applyPalette(tray);
-        tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
-    }
+  SECTION("green") {
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+    s.some.avg10 = cfg.psi.avg10_warn - 0.1;
+    Tray tray(nullptr, std::make_unique<StubProbe>(s));
+    applyPalette(tray);
+    tray.refresh();
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+  }
 
-    SECTION("yellow") {
-        ProbeSample s;
-        s.mem_available_kib = cfg.mem.available_warn_kib + 1;
-        s.some.avg10 = cfg.psi.avg10_warn + 0.1;
-        Tray tray(nullptr, std::make_unique<StubProbe>(s));
-        applyPalette(tray);
-        tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
-    }
+  SECTION("yellow psi") {
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+    s.some.avg10 = cfg.psi.avg10_warn + 0.1;
+    Tray tray(nullptr, std::make_unique<StubProbe>(s));
+    applyPalette(tray);
+    tray.refresh();
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+  }
 
-    SECTION("orange") {
-        ProbeSample s;
-        s.mem_available_kib = cfg.mem.available_warn_kib - 1;
-        s.some.avg10 = 0.0;
-        Tray tray(nullptr, std::make_unique<StubProbe>(s));
-        applyPalette(tray);
-        tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
-    }
+  SECTION("yellow mem") {
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_warn_exit_kib - 1;
+    s.some.avg10 = cfg.psi.avg10_warn - 0.1;
+    Tray tray(nullptr, std::make_unique<StubProbe>(s));
+    applyPalette(tray);
+    tray.refresh();
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+  }
 
-    SECTION("red") {
-        ProbeSample s;
-        s.mem_available_kib = cfg.mem.available_crit_kib - 1;
-        Tray tray(nullptr, std::make_unique<StubProbe>(s));
-        applyPalette(tray);
-        tray.refresh();
-        CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
-    }
+  SECTION("orange") {
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_warn_kib - 1;
+    s.some.avg10 = 0.0;
+    Tray tray(nullptr, std::make_unique<StubProbe>(s));
+    applyPalette(tray);
+    tray.refresh();
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+  }
+
+  SECTION("red") {
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_crit_kib - 1;
+    Tray tray(nullptr, std::make_unique<StubProbe>(s));
+    applyPalette(tray);
+    tray.refresh();
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+  }
 }
