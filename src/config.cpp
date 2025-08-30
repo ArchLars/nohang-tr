@@ -36,16 +36,24 @@ bool AppConfig::load(const QString& path) {
             if (ok) {
                 if (key == "avg10_warn")
                     psi.avg10_warn = v;
+                else if (key == "avg10_warn_exit")
+                    psi.avg10_warn_exit = v;
                 else if (key == "avg10_crit")
                     psi.avg10_crit = v;
+                else if (key == "avg10_crit_exit")
+                    psi.avg10_crit_exit = v;
             }
         } else if (section == "mem") {
             long v = value.toLong(&ok);
             if (ok) {
                 if (key == "available_warn_kib")
                     mem.available_warn_kib = v;
+                else if (key == "available_warn_exit_kib")
+                    mem.available_warn_exit_kib = v;
                 else if (key == "available_crit_kib")
                     mem.available_crit_kib = v;
+                else if (key == "available_crit_exit_kib")
+                    mem.available_crit_exit_kib = v;
             }
         } else if (section == "ui.palette") {
             if (key == "green")

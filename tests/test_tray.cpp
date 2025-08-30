@@ -51,15 +51,57 @@ TEST_CASE("decide returns expected state") {
     AppConfig cfg;
     ProbeSample s;
     s.mem_available_kib = cfg.mem.available_crit_kib - 1;
-    REQUIRE(Tray::decide(s, cfg) == Tray::State::Red);
+    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Red);
     s.mem_available_kib = cfg.mem.available_warn_kib - 1;
     s.some.avg10 = 0.0;
-    REQUIRE(Tray::decide(s, cfg) == Tray::State::Orange);
+    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Orange);
     s.mem_available_kib = cfg.mem.available_warn_kib + 1;
     s.some.avg10 = cfg.psi.avg10_warn + 0.1;
-    REQUIRE(Tray::decide(s, cfg) == Tray::State::Yellow);
+    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Yellow);
     s.some.avg10 = cfg.psi.avg10_warn - 0.1;
-    REQUIRE(Tray::decide(s, cfg) == Tray::State::Green);
+    REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Green);
+}
+
+TEST_CASE("hysteresis prevents state flapping") {
+    AppConfig cfg;
+
+    SECTION("psi warn") {
+        cfg.psi.avg10_warn = 0.5;
+        cfg.psi.avg10_warn_exit = 0.4;
+        ProbeSample s;
+        s.mem_available_kib = cfg.mem.available_warn_kib + 1;
+        s.some.avg10 = 0.51;
+        auto state = Tray::decide(s, cfg, Tray::State::Green);
+        REQUIRE(state == Tray::State::Yellow);
+        s.some.avg10 = 0.45; // between enter and exit
+        state = Tray::decide(s, cfg, state);
+        REQUIRE(state == Tray::State::Yellow);
+        s.some.avg10 = 0.39; // below exit
+        state = Tray::decide(s, cfg, state);
+        REQUIRE(state == Tray::State::Green);
+        s.some.avg10 = 0.45; // between enter and exit
+        state = Tray::decide(s, cfg, state);
+        REQUIRE(state == Tray::State::Green);
+    }
+
+    SECTION("mem warn") {
+        cfg.mem.available_warn_kib = 512 * 1024;
+        cfg.mem.available_warn_exit_kib = cfg.mem.available_warn_kib + 1024;
+        ProbeSample s;
+        s.some.avg10 = 0.0;
+        s.mem_available_kib = cfg.mem.available_warn_kib - 1;
+        auto state = Tray::decide(s, cfg, Tray::State::Green);
+        REQUIRE(state == Tray::State::Orange);
+        s.mem_available_kib = cfg.mem.available_warn_kib + 512; // between enter and exit
+        state = Tray::decide(s, cfg, state);
+        REQUIRE(state == Tray::State::Orange);
+        s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+        state = Tray::decide(s, cfg, state);
+        REQUIRE(state == Tray::State::Green);
+        s.mem_available_kib = cfg.mem.available_warn_exit_kib - 1; // between thresholds
+        state = Tray::decide(s, cfg, state);
+        REQUIRE(state == Tray::State::Green);
+    }
 }
 
 TEST_CASE("Tray show makes icon visible and starts timer") {
