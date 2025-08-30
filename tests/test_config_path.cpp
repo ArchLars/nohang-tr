@@ -42,3 +42,10 @@ TEST_CASE("HOME fallback when XDG_CONFIG_HOME missing") {
     auto p = resolveConfigPath();
     CHECK(p == QDir("/home/tester/.config").filePath("nohang-tr/nohang-tr.toml"));
 }
+
+TEST_CASE("fallback when neither HOME nor XDG_CONFIG_HOME set") {
+    EnvGuard xdg("XDG_CONFIG_HOME", QByteArray());
+    EnvGuard home("HOME", QByteArray());
+    auto p = resolveConfigPath();
+    CHECK(p == QDir(".config").filePath("nohang-tr/nohang-tr.toml"));
+}
