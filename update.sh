@@ -4,10 +4,14 @@ set -euo pipefail
 
 sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
 
-echo "[update] updating system packages"
-sudo pacman -Syu --noconfirm
+echo "[update] checking dependencies"
+sudo pacman -Sy --noconfirm
 if [ -f pacman-packages.txt ]; then
   xargs -a pacman-packages.txt -r sudo pacman -S --needed --noconfirm
+fi
+
+if ! command -v nohang >/dev/null; then
+  echo "[update] nohang not found. Please install it from the AUR: https://aur.archlinux.org/packages/nohang"
 fi
 
 echo "[update] pulling latest changes"

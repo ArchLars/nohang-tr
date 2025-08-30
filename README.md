@@ -14,10 +14,10 @@ Built with Qt 6, CMake and Ninja; tests use Catch2.
 ## Dependencies
 
 - Linux with PSI (`/proc/pressure`) available
-- `nohang` for configuration parsing
+- `nohang` for configuration parsing (install separately from the AUR)
 - Qt 6 Widgets, CMake, Ninja
 - libayatana-appindicator3 (for GNOME compatibility)
-- Catch2 for tests
+- Catch2 for tests (optional; tests are skipped if absent)
 - gcovr for coverage reports
 
 See `apt-packages.txt` for packages installed on Ubuntu CI. GNOME users may
@@ -28,8 +28,10 @@ need AppIndicator support.
 Run `./install.sh` to install dependencies and build the project:
 
 The provided scripts assume an Arch Linux environment and use `pacman` for
-package management. The `apt-packages.txt` file remains for compatibility
-with other tooling.
+package management without upgrading the whole system. They check whether
+`nohang` is already installed and, if missing, instruct you to obtain it from
+the [AUR](https://aur.archlinux.org/packages/nohang). The `apt-packages.txt`
+file remains for compatibility with other tooling.
 
 ```bash
 ./install.sh
