@@ -36,6 +36,13 @@ struct AppConfig {
     } mem;
 
     struct {
+        long free_warn_kib = 512 * 1024;
+        long free_warn_exit_kib = 512 * 1024 * 6 / 5; // 20% above warn
+        long free_crit_kib = 256 * 1024;
+        long free_crit_exit_kib = 256 * 1024 * 6 / 5; // 20% above crit
+    } swap;
+
+    struct {
         QString green = "res/icons/shield-green.svg";
         QString yellow = "res/icons/shield-yellow.svg";
         QString orange = "res/icons/shield-orange.svg";

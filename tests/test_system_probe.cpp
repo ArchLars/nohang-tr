@@ -32,6 +32,19 @@ TEST_CASE("parse MemTotal missing returns nullopt") {
     REQUIRE_FALSE(v);
 }
 
+TEST_CASE("parse SwapFree returns value") {
+    std::istringstream ss("SwapFree: 789 kB\n");
+    auto v = parseSwapFree(ss);
+    REQUIRE(v);
+    CHECK(*v == 789);
+}
+
+TEST_CASE("parse SwapFree missing returns nullopt") {
+    std::istringstream ss("MemTotal: 1 kB\n");
+    auto v = parseSwapFree(ss);
+    REQUIRE_FALSE(v);
+}
+
 TEST_CASE("parse PSI memory some line") {
     std::string line = "some avg10=1.23 avg60=4.56 avg300=7.89 total=789";
     auto parsed = SystemProbe::parsePsiMemoryLine(line);
@@ -68,6 +81,8 @@ TEST_CASE("sample provides non-negative values") {
             REQUIRE(*s.mem_available_kib >= 0);
         if (s.mem_total_kib)
             REQUIRE(*s.mem_total_kib >= 0);
+        if (s.swap_free_kib)
+            REQUIRE(*s.swap_free_kib >= 0);
         REQUIRE(s.some.avg10 >= 0.0);
         REQUIRE(s.some.avg60 >= 0.0);
         REQUIRE(s.some.avg300 >= 0.0);
@@ -91,6 +106,7 @@ TEST_CASE("sample reads from provided paths") {
         std::ofstream out(mem);
         out << "MemTotal: 456 kB\n";
         out << "MemAvailable: 123 kB\n";
+        out << "SwapFree: 10 kB\n";
     }
     {
         std::ofstream out(psi);
@@ -102,8 +118,10 @@ TEST_CASE("sample reads from provided paths") {
     REQUIRE(s);
     REQUIRE(s->mem_available_kib);
     REQUIRE(s->mem_total_kib);
+    REQUIRE(s->swap_free_kib);
     CHECK(*s->mem_available_kib == 123);
     CHECK(*s->mem_total_kib == 456);
+    CHECK(*s->swap_free_kib == 10);
     CHECK(s->some.total == 4);
     CHECK(s->full.total == 8);
 }
@@ -118,6 +136,7 @@ TEST_CASE("sample continues after source files removed") {
         std::ofstream out(mem);
         out << "MemTotal: 456 kB\n";
         out << "MemAvailable: 123 kB\n";
+        out << "SwapFree: 10 kB\n";
     }
     {
         std::ofstream out(psi);
@@ -131,8 +150,10 @@ TEST_CASE("sample continues after source files removed") {
     REQUIRE(s);
     REQUIRE(s->mem_available_kib);
     REQUIRE(s->mem_total_kib);
+    REQUIRE(s->swap_free_kib);
     CHECK(*s->mem_available_kib == 123);
     CHECK(*s->mem_total_kib == 456);
+    CHECK(*s->swap_free_kib == 10);
     CHECK(s->some.total == 4);
     CHECK(s->full.total == 8);
 }

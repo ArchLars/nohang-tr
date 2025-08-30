@@ -109,6 +109,22 @@ bool loadNohangConfig(AppConfig& cfg) {
             long v = parseNohangMem(value);
             if (v > 0)
                 cfg.mem.available_crit_exit_kib = v;
+        } else if (key == "warning_threshold_min_swap") {
+            long v = parseNohangMem(value);
+            if (v > 0) {
+                cfg.swap.free_warn_kib = v;
+                cfg.swap.free_warn_exit_kib = v * 6 / 5;
+            }
+        } else if (key == "soft_threshold_min_swap") {
+            long v = parseNohangMem(value);
+            if (v > 0) {
+                cfg.swap.free_crit_kib = v;
+                cfg.swap.free_crit_exit_kib = v * 6 / 5;
+            }
+        } else if (key == "hard_threshold_min_swap") {
+            long v = parseNohangMem(value);
+            if (v > 0)
+                cfg.swap.free_crit_exit_kib = v;
         }
     }
     cfg.source = AppConfig::Source::Nohang;
@@ -183,6 +199,18 @@ bool AppConfig::load(const QString& path) {
                         mem.available_crit_kib = v;
                     else if (key == "available_crit_exit_kib")
                         mem.available_crit_exit_kib = v;
+                }
+            } else if (section == "swap") {
+                long v = value.toLong(&ok);
+                if (ok) {
+                    if (key == "free_warn_kib")
+                        swap.free_warn_kib = v;
+                    else if (key == "free_warn_exit_kib")
+                        swap.free_warn_exit_kib = v;
+                    else if (key == "free_crit_kib")
+                        swap.free_crit_kib = v;
+                    else if (key == "free_crit_exit_kib")
+                        swap.free_crit_exit_kib = v;
                 }
             } else if (section == "ui.palette") {
                 if (key == "green")
