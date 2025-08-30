@@ -277,3 +277,47 @@ TEST_CASE("refresh sets icon color for each state") {
     CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
   }
 }
+
+TEST_CASE("refresh caches tooltip until significant change") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_warn_kib * 2;
+  s.some.avg10 = 0.1;
+  auto *probe = new StubProbe(s);
+  Tray tray(nullptr, std::unique_ptr<SystemProbe>(probe));
+  applyPalette(tray);
+
+  tray.refresh();
+  auto initial = tray.icon_.toolTip();
+
+  // minor change (<5%), stays above thresholds
+  probe->s.mem_available_kib = *s.mem_available_kib - *s.mem_available_kib * 3 / 100;
+  probe->s.some.avg10 = 0.103;
+  tray.refresh();
+  CHECK(tray.icon_.toolTip() == initial);
+
+  // major change (>5%), still above warn threshold
+  probe->s.mem_available_kib = *s.mem_available_kib * 8 / 10;
+  probe->s.some.avg10 = 0.2;
+  tray.refresh();
+  CHECK(tray.icon_.toolTip() != initial);
+}
+
+TEST_CASE("refresh updates tooltip on threshold crossing") {
+  AppConfig cfg;
+  ProbeSample s;
+  long base = cfg.mem.available_warn_kib + cfg.mem.available_warn_kib / 50; // 2% above warn
+  s.mem_available_kib = base;
+  s.some.avg10 = 0.0;
+  auto *probe = new StubProbe(s);
+  Tray tray(nullptr, std::unique_ptr<SystemProbe>(probe));
+  applyPalette(tray);
+
+  tray.refresh();
+  auto tipAbove = tray.icon_.toolTip();
+
+  // small change (<5%) but crosses warn threshold
+  probe->s.mem_available_kib = cfg.mem.available_warn_kib - cfg.mem.available_warn_kib / 50;
+  tray.refresh();
+  CHECK(tray.icon_.toolTip() != tipAbove);
+}

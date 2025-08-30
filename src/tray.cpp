@@ -6,6 +6,7 @@
 #include <QMenu>
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
            const QString &configPath)
@@ -152,7 +153,53 @@ void Tray::refresh() {
   if (!sOpt)
     return;
   const auto &s = *sOpt;
-  icon_.setToolTip(buildTooltip(s, cfg_));
+  bool updateTip = true;
+  if (tooltipSample_) {
+    auto diffPct = [](double a, double b) {
+      return (a == 0.0) ? std::abs(b) : std::abs(a - b) / std::abs(a);
+    };
+    auto crosses = [](double prev, double cur, double thr) {
+      return (prev <= thr && cur > thr) || (prev > thr && cur <= thr);
+    };
+    const auto &prev = *tooltipSample_;
+    updateTip = false;
+
+    if (prev.mem_available_kib != s.mem_available_kib) {
+      if (!prev.mem_available_kib || !s.mem_available_kib)
+        updateTip = true;
+      else {
+        double oldVal = static_cast<double>(*prev.mem_available_kib);
+        double curVal = static_cast<double>(*s.mem_available_kib);
+        if (diffPct(oldVal, curVal) > 0.05)
+          updateTip = true;
+        if (crosses(oldVal, curVal, static_cast<double>(cfg_.mem.available_warn_kib)) ||
+            crosses(oldVal, curVal, static_cast<double>(cfg_.mem.available_crit_kib)))
+          updateTip = true;
+      }
+    }
+
+    if (!updateTip) {
+      double oldSome = prev.some.avg10;
+      double curSome = s.some.avg10;
+      if (diffPct(oldSome, curSome) > 0.05 ||
+          crosses(oldSome, curSome, cfg_.psi.avg10_warn) ||
+          crosses(oldSome, curSome, cfg_.psi.avg10_crit))
+        updateTip = true;
+    }
+
+    if (!updateTip) {
+      double oldFull = prev.full.avg10;
+      double curFull = s.full.avg10;
+      if (diffPct(oldFull, curFull) > 0.05)
+        updateTip = true;
+    }
+  }
+
+  if (updateTip) {
+    tooltipCache_ = buildTooltip(s, cfg_);
+    tooltipSample_ = s;
+  }
+  icon_.setToolTip(tooltipCache_);
   state_ = decide(s, cfg_, state_, prevSomeAvg10_);
   prevSomeAvg10_ = s.some.avg10;
   switch (state_) {
