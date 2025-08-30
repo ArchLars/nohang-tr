@@ -23,6 +23,21 @@ Built with Qt 6, CMake and Ninja; tests use Catch2.
 See `apt-packages.txt` for packages installed on Ubuntu CI. GNOME users may
 need AppIndicator support.
 
+## Installation and updates
+
+Run `./install.sh` to install dependencies and build the project:
+
+```bash
+./install.sh
+```
+
+Fetch the latest changes and rebuild with:
+
+```bash
+./update.sh
+```
+
+
 ## Building and testing
 
 ```bash
