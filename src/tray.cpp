@@ -1,18 +1,11 @@
 #include "tray.h"
 #include <QAction>
 #include <QCoreApplication>
-#include <QFile>
 #include <QIcon>
 #include <QMenu>
-#include <QProcessEnvironment>
 #include <algorithm>
 #include <cmath>
 #include <vector>
-#ifdef HAVE_AYATANA_APPINDICATOR3
-#undef signals
-#include <gtk/gtk.h>
-#include <libayatana-appindicator/app-indicator.h>
-#endif
 
 Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
            const QString &configPath)
@@ -40,46 +33,9 @@ Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
     probe_->enableTriggers(triggers);
 }
 
-bool Tray::shouldUseAppIndicator() {
-#ifdef HAVE_AYATANA_APPINDICATOR3
-  const QString desktop = qEnvironmentVariable("XDG_CURRENT_DESKTOP");
-  return desktop.contains("GNOME", Qt::CaseInsensitive);
-#else
-  return false;
-#endif
-}
-
 void Tray::show() {
   icon_.setIcon(QIcon(cfg_.palette.black)); // initial
-#ifdef HAVE_AYATANA_APPINDICATOR3
-  if (shouldUseAppIndicator()) {
-    if (!indicator_) {
-      int argc = 0;
-      char **argv = nullptr;
-      if (gtk_init_check(&argc, &argv)) { // GCOVR_EXCL_START
-        indicator_ = app_indicator_new(
-            "nohang-tr", cfg_.palette.black.toUtf8().constData(),
-            APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
-        app_indicator_set_status(indicator_, APP_INDICATOR_STATUS_ACTIVE);
-        GtkWidget *menu = gtk_menu_new();
-        GtkWidget *quit = gtk_menu_item_new_with_label("Quit");
-        g_signal_connect(quit, "activate",
-                         G_CALLBACK(+[](GtkMenuItem *, gpointer) {
-                           QCoreApplication::quit();
-                         }),
-                         nullptr);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit);
-        gtk_widget_show_all(menu);
-        app_indicator_set_menu(indicator_, GTK_MENU(menu));
-        menuIndicator_ = menu;
-      } // GCOVR_EXCL_STOP
-    }
-  } else {
-    icon_.setVisible(true);
-  }
-#else
   icon_.setVisible(true);
-#endif
   timer_.start();
 }
 
@@ -319,11 +275,4 @@ void Tray::refresh() {
     break;
   }
   icon_.setIcon(QIcon(iconPath));
-#ifdef HAVE_AYATANA_APPINDICATOR3
-  if (indicator_) {
-    app_indicator_set_title(indicator_, tooltipCache_.toUtf8().constData());
-    app_indicator_set_icon_full(indicator_, iconPath.toUtf8().constData(),
-                                tooltipCache_.toUtf8().constData());
-  }
-#endif
 }

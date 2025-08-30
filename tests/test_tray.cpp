@@ -464,31 +464,3 @@ TEST_CASE("refresh updates tooltip on PSI full change") {
   CHECK(tray.icon_.toolTip() != tip);
 }
 
-TEST_CASE("shouldUseAppIndicator detects GNOME") {
-  QByteArray old = qgetenv("XDG_CURRENT_DESKTOP");
-
-  qputenv("XDG_CURRENT_DESKTOP", "GNOME");
-  {
-    Tray tray(nullptr, std::make_unique<NullProbe>());
-    applyPalette(tray);
-    tray.show();
-#ifdef HAVE_AYATANA_APPINDICATOR3
-    CHECK(Tray::shouldUseAppIndicator());
-#else
-    CHECK_FALSE(Tray::shouldUseAppIndicator());
-#endif
-  }
-
-  qputenv("XDG_CURRENT_DESKTOP", "X-Cinnamon");
-  {
-    Tray tray(nullptr, std::make_unique<NullProbe>());
-    applyPalette(tray);
-    tray.show();
-    CHECK_FALSE(Tray::shouldUseAppIndicator());
-  }
-
-  if (old.isNull())
-    qunsetenv("XDG_CURRENT_DESKTOP");
-  else
-    qputenv("XDG_CURRENT_DESKTOP", old);
-}

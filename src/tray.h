@@ -1,12 +1,6 @@
 #pragma once
 #include <QSystemTrayIcon>
 #include <QTimer>
-#ifdef HAVE_AYATANA_APPINDICATOR3
-struct _AppIndicator;
-using AppIndicator = _AppIndicator;
-struct _GtkWidget;
-using GtkWidget = _GtkWidget;
-#endif
 #include "config.h"
 #include "system_probe.h"
 #include <memory>
@@ -57,17 +51,8 @@ public:
   static State decide(const ProbeSample &s, const AppConfig &cfg, State prev,
                       std::optional<double> prevSomeAvg10 = std::nullopt);
 
-  /**
-   * @brief Determine whether to use Ayatana AppIndicator integration.
-   */
-  static bool shouldUseAppIndicator();
-
 private:
   void refresh();
-#ifdef HAVE_AYATANA_APPINDICATOR3
-  AppIndicator *indicator_ = nullptr;
-  GtkWidget *menuIndicator_ = nullptr;
-#endif
   QSystemTrayIcon icon_;
   QTimer timer_;
   AppConfig cfg_;

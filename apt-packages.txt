@@ -2,10 +2,10 @@ build-essential
 cmake
 ninja-build
 qt6-base-dev
-libayatana-appindicator3-dev
 libglib2.0-dev
 libdbus-1-dev
 pkg-config
 catch2
 gcovr
 nohang
+libvulkan-dev
