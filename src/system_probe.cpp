@@ -6,6 +6,10 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <filesystem>
+#include <iostream>
+#include <cstring>
+#include <cerrno>
 
 static double parseDouble(const std::string& line, const char* key) {
     auto pos = line.find(key);
@@ -69,7 +73,19 @@ std::optional<std::pair<SystemProbe::PsiType, PsiValues>> SystemProbe::parsePsiM
 }
 
 std::optional<std::pair<PsiValues, PsiValues>> SystemProbe::readPsiMemory() const {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    if (!fs::exists(psiPath_, ec)) {
+        std::cerr << "PSI unavailable: " << psiPath_ << " not found\n";
+        return std::nullopt;
+    }
+    errno = 0;
     std::ifstream f(psiPath_);
+    if (!f) {
+        std::cerr << "PSI unavailable: cannot read " << psiPath_ << ": "
+                  << std::strerror(errno) << "\n";
+        return std::nullopt;
+    }
     std::string line;
     std::optional<PsiValues> some, full;
     while (std::getline(f, line)) {
@@ -79,6 +95,7 @@ std::optional<std::pair<PsiValues, PsiValues>> SystemProbe::readPsiMemory() cons
         else if (parsed->first == PsiType::Full) full = parsed->second;
     }
     if (some && full) return std::make_pair(*some, *full);
+    std::cerr << "PSI unavailable: incomplete data in " << psiPath_ << "\n";
     return std::nullopt;
 }
 

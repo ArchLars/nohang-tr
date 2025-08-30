@@ -2,6 +2,7 @@
 #include <sstream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <vector>
 #include "system_probe.h"
 
@@ -115,4 +116,46 @@ TEST_CASE("enableTriggers writes thresholds") {
     std::string line;
     std::getline(in, line);
     CHECK(line == "some 10 100");
+}
+
+TEST_CASE("sample logs missing PSI file") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_missing";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    {
+        std::ofstream out(mem);
+        out << "MemAvailable: 1 kB\n";
+    }
+    fs::path psi = dir / "pressure";
+    SystemProbe probe(mem.string(), psi.string());
+    std::ostringstream err;
+    auto* old = std::cerr.rdbuf(err.rdbuf());
+    auto s = probe.sample();
+    std::cerr.rdbuf(old);
+    REQUIRE_FALSE(s);
+    CHECK(err.str().find("not found") != std::string::npos);
+}
+
+TEST_CASE("sample logs incomplete PSI data") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_incomplete";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    {
+        std::ofstream out(mem);
+        out << "MemAvailable: 1 kB\n";
+    }
+    fs::path psi = dir / "pressure";
+    {
+        std::ofstream out(psi);
+        out << "some avg10=1 avg60=2 avg300=3 total=4\n"; // missing full line
+    }
+    SystemProbe probe(mem.string(), psi.string());
+    std::ostringstream err;
+    auto* old = std::cerr.rdbuf(err.rdbuf());
+    auto s = probe.sample();
+    std::cerr.rdbuf(old);
+    REQUIRE_FALSE(s);
+    CHECK(err.str().find("incomplete") != std::string::npos);
 }
