@@ -15,6 +15,13 @@ TDD:
 - Unit tests cover config parsing and state computation on synthetic inputs.
 - CI runs tests only on merged PRs to `main`, builds with Ninja, caches APT packages for speed. :contentReference[oaicite:7]{index=7}
 
+Phase 1 – Basic Function:
+- Run `unminimize` on minimal systems to ensure man pages and documentation are present.
+- Integrate `nohang` configuration parsing to align tray behavior with system settings.
+- Sample memory pressure via `system_probe` to feed data into the tray.
+- Display a basic tray icon with color states and a tooltip.
+- Add initial tests covering probe sampling, config integration, and UI state.
+
 Future:
 - Parse `nohang` config for actual trigger points and show them.
 - Popup details window with rolling PSI graph.
