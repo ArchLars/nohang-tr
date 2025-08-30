@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 /**
  * Parse the MemAvailable value in KiB from a meminfo-like stream.
@@ -35,8 +36,34 @@ struct ProbeSample {
  */
 class SystemProbe {
 public:
+    /// PSI memory line type indicator.
+    enum class PsiType { Some, Full };
+
+    /** PSI trigger specification. */
+    struct Trigger {
+        PsiType type;      ///< Trigger type (some/full).
+        long stall_us;     ///< Stall amount in microseconds.
+        long window_us;    ///< Time window in microseconds.
+    };
+
+    /**
+     * Construct a probe reading from provided paths.
+     * @param meminfoPath Path to meminfo-like file.
+     * @param psiPath Path to psi memory file.
+     */
+    explicit SystemProbe(std::string meminfoPath = "/proc/meminfo",
+                         std::string psiPath = "/proc/pressure/memory");
+
     /** Virtual destructor for polymorphic use. */
-    virtual ~SystemProbe() = default;
+    virtual ~SystemProbe();
+
+    /**
+     * @brief Enable PSI triggers at the specified path.
+     * @param path File path to register triggers (typically /proc/pressure/memory).
+     * @param triggers Collection of trigger thresholds to register.
+     * @return True on success, false otherwise.
+     */
+    bool enableTriggers(const std::string& path, const std::vector<Trigger>& triggers);
 
     /**
      * @brief Obtain a single sample of current memory statistics.
@@ -44,16 +71,18 @@ public:
      */
     virtual std::optional<ProbeSample> sample() const;
 
-    /// PSI memory line type indicator.
-    enum class PsiType { Some, Full };
-
     /**
      * @brief Parse a line from /proc/pressure/memory.
      * @param line Line to parse.
      * @return Pair of PSI type and values or std::nullopt on failure.
      */
     static std::optional<std::pair<PsiType, PsiValues>> parsePsiMemoryLine(const std::string& line);
+
 private:
-    static std::optional<long> readMemAvailableKiB();
-    static std::optional<std::pair<PsiValues, PsiValues>> readPsiMemory();
+    std::optional<long> readMemAvailableKiB() const;
+    std::optional<std::pair<PsiValues, PsiValues>> readPsiMemory() const;
+
+    std::string meminfoPath_;
+    std::string psiPath_;
+    mutable int triggerFd_ = -1;
 };

@@ -2,6 +2,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
+#include <poll.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 static double parseDouble(const std::string& line, const char* key) {
     auto pos = line.find(key);
@@ -34,8 +38,15 @@ std::optional<long> parseMemAvailable(std::istream& in) {
     return std::nullopt;
 }
 
-std::optional<long> SystemProbe::readMemAvailableKiB() {
-    std::ifstream f("/proc/meminfo");
+SystemProbe::SystemProbe(std::string meminfoPath, std::string psiPath)
+    : meminfoPath_(std::move(meminfoPath)), psiPath_(std::move(psiPath)) {}
+
+SystemProbe::~SystemProbe() {
+    if (triggerFd_ >= 0) close(triggerFd_);
+}
+
+std::optional<long> SystemProbe::readMemAvailableKiB() const {
+    std::ifstream f(meminfoPath_);
     if (!f) return std::nullopt;
     return parseMemAvailable(f);
 }
@@ -57,8 +68,8 @@ std::optional<std::pair<SystemProbe::PsiType, PsiValues>> SystemProbe::parsePsiM
     return std::make_pair(type, v);
 }
 
-std::optional<std::pair<PsiValues, PsiValues>> SystemProbe::readPsiMemory() {
-    std::ifstream f("/proc/pressure/memory");
+std::optional<std::pair<PsiValues, PsiValues>> SystemProbe::readPsiMemory() const {
+    std::ifstream f(psiPath_);
     std::string line;
     std::optional<PsiValues> some, full;
     while (std::getline(f, line)) {
@@ -71,7 +82,31 @@ std::optional<std::pair<PsiValues, PsiValues>> SystemProbe::readPsiMemory() {
     return std::nullopt;
 }
 
+bool SystemProbe::enableTriggers(const std::string& path, const std::vector<Trigger>& triggers) {
+    int fd = open(path.c_str(), O_RDWR | O_NONBLOCK);
+    if (fd < 0) return false;
+    for (const auto& t : triggers) {
+        std::string line = (t.type == PsiType::Some ? "some " : "full ") +
+                           std::to_string(t.stall_us) + " " + std::to_string(t.window_us) + "\n";
+        if (write(fd, line.c_str(), line.size()) < 0) {
+            close(fd);
+            return false;
+        }
+    }
+    triggerFd_ = fd;
+    return true;
+}
+
 std::optional<ProbeSample> SystemProbe::sample() const {
+    if (triggerFd_ >= 0) {
+        struct pollfd pfd { triggerFd_, POLLPRI, 0 };
+        if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLPRI)) {
+            char buf[128];
+            lseek(triggerFd_, 0, SEEK_SET);
+            while (read(triggerFd_, buf, sizeof(buf)) > 0) {
+            }
+        }
+    }
     ProbeSample s;
     s.mem_available_kib = readMemAvailableKiB();
     auto psi = readPsiMemory();
