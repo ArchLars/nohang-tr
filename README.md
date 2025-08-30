@@ -14,7 +14,7 @@ Built with Qt 6, CMake and Ninja; tests use Catch2.
 ## Dependencies
 
 - Linux with PSI (`/proc/pressure`) available
-- `nohang` and `libnohang-dev` for configuration parsing
+- `nohang` for configuration parsing
 - Qt 6 Widgets, CMake, Ninja
 - libayatana-appindicator3 (for GNOME compatibility)
 - Catch2 for tests
