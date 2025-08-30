@@ -5,10 +5,9 @@ set -euo pipefail
 sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
 
 echo "[install] installing dependencies"
-export DEBIAN_FRONTEND=noninteractive
-sudo apt-get update -y -o Acquire::Retries=3
+sudo pacman -Syu --noconfirm
 if [ -f apt-packages.txt ]; then
-  xargs -a apt-packages.txt -r sudo apt-get install -y --no-install-recommends
+  xargs -a apt-packages.txt -r sudo pacman -S --needed --noconfirm
 fi
 
 echo "[install] configuring"
