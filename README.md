@@ -24,7 +24,7 @@ See `apt-packages.txt` for packages installed on Ubuntu CI.
 
 ## Installation and updates
 
-Run `./install.sh` to install dependencies and build the project:
+Run `./install.sh` to install dependencies, build, and install the project. By default it installs into `/usr/local`.
 
 The provided scripts assume an Arch Linux environment and use `pacman` for
 package management without upgrading the whole system. They check whether
@@ -33,8 +33,10 @@ the [AUR](https://aur.archlinux.org/packages/nohang). The `apt-packages.txt`
 file remains for compatibility with other tooling.
 
 ```bash
-./install.sh
+./install.sh /usr/local
 ```
+
+This installs the `nohang-tr` binary, a `nohang-tr.desktop` entry, and the tray icon into standard system locations so the app shows up in your desktop menu.
 
 Fetch the latest changes and rebuild with:
 
@@ -62,9 +64,22 @@ gcovr -r . --exclude build -e src/main.cpp
 
 ## Running
 
+After installation you can launch the tray from your application menu or run:
+
 ```bash
-./build/nohang-tr
+nohang-tr
 ```
+
+### Autostart on KDE
+
+To have the tray icon start automatically on login, copy the desktop file to your autostart directory:
+
+```bash
+mkdir -p ~/.config/autostart
+cp /usr/local/share/applications/nohang-tr.desktop ~/.config/autostart/
+```
+
+Alternatively, open **System Settings → Startup and Shutdown → Autostart**, click **Add Program**, and choose **nohang-tr**.
 
 ## Configuration
 

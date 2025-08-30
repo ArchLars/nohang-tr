@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs dependencies and builds nohang-tr.
+# Installs dependencies, builds, and installs nohang-tr.
 set -euo pipefail
 
 sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
@@ -19,5 +19,9 @@ cmake -S . -B build -G Ninja
 
 echo "[install] building"
 cmake --build build
-
+echo "[install] installing"
+prefix=${1:-/usr/local}
+sudo cmake --install build --prefix "$prefix"
+sudo install -Dm644 res/icons/shield-green.svg "$prefix/share/icons/hicolor/scalable/apps/shield-green.svg"
+sudo install -Dm644 res/nohang-tr.desktop "$prefix/share/applications/nohang-tr.desktop"
 echo "[install] done"
