@@ -11,7 +11,8 @@ struct ProbeSample {
 
 class SystemProbe {
 public:
-    ProbeSample sample() const;
+    virtual ~SystemProbe() = default;
+    virtual ProbeSample sample() const;
     static std::optional<std::pair<double,double>> parsePsiMemoryLine(const std::string& line);
 private:
     static long readMemAvailableKiB();
