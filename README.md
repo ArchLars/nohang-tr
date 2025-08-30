@@ -1,38 +1,61 @@
 # nohang-tr
 
-A DE-agnostic system tray for `nohang`, showing live memory pressure and when actions may trigger. Qt 6, CMake, Ninja. TDD with Catch2.
+A cross-desktop system tray companion for `nohang` that visualizes memory
+pressure. The tray icon changes color based on Linux PSI and
+`/proc/meminfo` readings so you can see when `nohang` actions may trigger.
+Built with Qt 6, CMake and Ninja; tests use Catch2.
+
+## Features
+
+- Live tray indicator of memory pressure
+- Color palette reflects warning and critical thresholds
+- Tooltip displays current readings alongside configured targets
 
 ## Dependencies
 
 - Linux with PSI (`/proc/pressure`) available
-- `nohang` installed
-- `libnohang-dev` for configuration parsing
+- `nohang` and `libnohang-dev` for configuration parsing
 - Qt 6 Widgets, CMake, Ninja
 - libayatana-appindicator3 (for GNOME compatibility)
 - Catch2 for tests
 - gcovr for coverage reports
 
-Install on Ubuntu CI (see apt-packages.txt). On GNOME, AppIndicator support may be required. 
+See `apt-packages.txt` for packages installed on Ubuntu CI. GNOME users may
+need AppIndicator support.
 
-## Build
+## Building and testing
 
 ```bash
 cmake -S . -B build -G Ninja
 cmake --build build
 ctest --test-dir build/tests
+```
 
-# With coverage
+To collect coverage data:
+
+```bash
 cmake -S . -B build -G Ninja -DENABLE_COVERAGE=ON
 cmake --build build
 ctest --test-dir build/tests
 gcovr -r . --exclude build -e src/main.cpp
 ```
 
-## RUN
+## Running
+
 ```bash
 ./build/nohang-tr
 ```
 
-Config
+## Configuration
 
-See config/nohang-tr.example.toml. It defines thresholds and colors that the tray uses to compute states against current /proc values. PSI and /proc/meminfo are read to estimate risk and show a color shield. The tray tooltip now also displays these configuration thresholds alongside live system readings with simple percentage bars for quick analysis.
+Copy `config/nohang-tr.example.toml` to your configuration directory and
+adjust thresholds and palette as needed:
+
+```bash
+cp config/nohang-tr.example.toml ~/.config/nohang-tr/nohang-tr.toml
+```
+
+`XDG_CONFIG_HOME` is respected when set; otherwise `$HOME/.config` is used.
+The file defines PSI and available memory thresholds and the icons used for
+each state.
+
