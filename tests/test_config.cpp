@@ -65,9 +65,9 @@ TEST_CASE("load values from example config") {
     CHECK(cfg.psi.avg10_crit == Catch::Approx(1.00));
     CHECK(cfg.mem.available_warn_kib == 524288);
     CHECK(cfg.mem.available_crit_kib == 262144);
-    CHECK(cfg.palette.green.endsWith("shield-green.svg"));
-    CHECK(cfg.palette.red.endsWith("shield-red.svg"));
-    CHECK(cfg.palette.black.endsWith("shield-black.svg"));
+    CHECK(cfg.palette.green == "shield-green");
+    CHECK(cfg.palette.red == "shield-red");
+    CHECK(cfg.palette.black == "shield-black");
     CHECK(cfg.sample_interval_ms == 2000);
 
     if (oldXdg.isNull())

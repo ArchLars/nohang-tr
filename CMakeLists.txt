@@ -27,3 +27,11 @@ add_subdirectory(src)
 add_subdirectory(tests)
 
 install(FILES config/nohang-tr.example.toml DESTINATION share/nohang-tr)
+install(FILES res/nohang-tr.desktop DESTINATION share/applications)
+install(FILES
+  res/icons/shield-green.svg
+  res/icons/shield-yellow.svg
+  res/icons/shield-orange.svg
+  res/icons/shield-red.svg
+  res/icons/shield-black.svg
+  DESTINATION share/icons/hicolor/scalable/apps)
