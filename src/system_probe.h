@@ -94,11 +94,12 @@ public:
     static std::optional<std::pair<PsiType, PsiValues>> parsePsiMemoryLine(const std::string& line);
 
 private:
-    std::optional<long> readMemAvailableKiB() const;
-    std::optional<long> readMemTotalKiB() const;
+    std::optional<std::string> readMeminfo() const;
     std::optional<std::pair<PsiValues, PsiValues>> readPsiMemory() const;
 
     std::string meminfoPath_;
     std::string psiPath_;
+    mutable int meminfoFd_ = -1;
+    mutable int psiFd_ = -1;
     mutable int triggerFd_ = -1;
 };
