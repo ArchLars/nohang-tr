@@ -41,12 +41,13 @@ struct StubProbe : SystemProbe {
 TEST_CASE("buildTooltip formats values") {
   ProbeSample s;
   s.mem_available_kib = 1234;
+  s.mem_total_kib = 2 * 1024 * 1024;
   s.some.avg10 = 0.5;
   s.some.avg60 = 1.5;
   s.full.avg10 = 1.5;
   AppConfig cfg;
   auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
-  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB") != std::string::npos);
+  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB / 2.0 GiB") != std::string::npos);
   REQUIRE(tooltip.find("warn 512.0 MiB") != std::string::npos);
   REQUIRE(tooltip.find("crit 256.0 MiB") != std::string::npos);
   REQUIRE(tooltip.find("PSI some avg10: 0.50 (warn 0.50, crit 1.00)") !=

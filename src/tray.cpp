@@ -59,7 +59,13 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg) {
 
   QString tip;
   if (s.mem_available_kib) {
-    tip += QString("MemAvailable: %1\n").arg(formatKib(*s.mem_available_kib));
+    if (s.mem_total_kib) {
+      tip += QString("MemAvailable: %1 / %2\n")
+                 .arg(formatKib(*s.mem_available_kib))
+                 .arg(formatKib(*s.mem_total_kib));
+    } else {
+      tip += QString("MemAvailable: %1\n").arg(formatKib(*s.mem_available_kib));
+    }
     auto addMem = [&](const char *label, long thr) {
       double ratio = 1.0 - static_cast<double>(*s.mem_available_kib) / thr;
       ratio = std::clamp(ratio, 0.0, 1.0);

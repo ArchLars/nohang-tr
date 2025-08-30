@@ -19,6 +19,19 @@ TEST_CASE("parse MemAvailable missing returns nullopt") {
     REQUIRE_FALSE(v);
 }
 
+TEST_CASE("parse MemTotal returns value") {
+    std::istringstream ss("MemTotal: 456 kB\nMemAvailable: 1 kB\n");
+    auto v = parseMemTotal(ss);
+    REQUIRE(v);
+    CHECK(*v == 456);
+}
+
+TEST_CASE("parse MemTotal missing returns nullopt") {
+    std::istringstream ss("MemAvailable: 1 kB\n");
+    auto v = parseMemTotal(ss);
+    REQUIRE_FALSE(v);
+}
+
 TEST_CASE("parse PSI memory some line") {
     std::string line = "some avg10=1.23 avg60=4.56 avg300=7.89 total=789";
     auto parsed = SystemProbe::parsePsiMemoryLine(line);
@@ -53,6 +66,8 @@ TEST_CASE("sample provides non-negative values") {
         const auto& s = *sOpt;
         if (s.mem_available_kib)
             REQUIRE(*s.mem_available_kib >= 0);
+        if (s.mem_total_kib)
+            REQUIRE(*s.mem_total_kib >= 0);
         REQUIRE(s.some.avg10 >= 0.0);
         REQUIRE(s.some.avg60 >= 0.0);
         REQUIRE(s.some.avg300 >= 0.0);
@@ -74,6 +89,7 @@ TEST_CASE("sample reads from provided paths") {
     fs::path psi = dir / "pressure";
     {
         std::ofstream out(mem);
+        out << "MemTotal: 456 kB\n";
         out << "MemAvailable: 123 kB\n";
     }
     {
@@ -85,7 +101,9 @@ TEST_CASE("sample reads from provided paths") {
     auto s = probe.sample();
     REQUIRE(s);
     REQUIRE(s->mem_available_kib);
+    REQUIRE(s->mem_total_kib);
     CHECK(*s->mem_available_kib == 123);
+    CHECK(*s->mem_total_kib == 456);
     CHECK(s->some.total == 4);
     CHECK(s->full.total == 8);
 }
