@@ -3,6 +3,8 @@
 #include <QDir>
 #include <QIcon>
 #include <memory>
+#include <filesystem>
+#include <fstream>
 #define private public
 #include "tray.h"
 #undef private
@@ -118,6 +120,62 @@ TEST_CASE("hysteresis prevents state flapping") {
         state = Tray::decide(s, cfg, state);
         REQUIRE(state == Tray::State::Green);
     }
+}
+
+TEST_CASE("Tray enables configured PSI triggers") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "tray_triggers";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    fs::path psi = dir / "pressure";
+    {
+        std::ofstream(mem.string());
+    }
+    {
+        std::ofstream(psi.string());
+    }
+    fs::path cfg = dir / "config.toml";
+    {
+        std::ofstream out(cfg);
+        out << "[psi.trigger]\n";
+        out << "some = 10 100\n";
+        out << "full = 20 200\n";
+    }
+    auto probe = std::make_unique<SystemProbe>(mem.string(), psi.string());
+    Tray tray(nullptr, std::move(probe), QString::fromStdString(cfg.string()));
+    std::ifstream in(psi);
+    std::string line1, line2;
+    std::getline(in, line1);
+    std::getline(in, line2);
+    REQUIRE(line1 == "some 10 100");
+    REQUIRE(line2 == "full 20 200");
+}
+
+TEST_CASE("Tray skips enabling PSI triggers when none configured") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "tray_no_triggers";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    fs::path psi = dir / "pressure";
+    {
+        std::ofstream(mem.string());
+    }
+    {
+        std::ofstream(psi.string());
+    }
+    fs::path cfg = dir / "config.toml";
+    {
+        std::ofstream(cfg.string());
+    }
+    auto probe = std::make_unique<SystemProbe>(mem.string(), psi.string());
+    {
+        Tray tray(nullptr, std::move(probe), QString::fromStdString(cfg.string()));
+    }
+    std::ifstream in(psi);
+    std::string line;
+    REQUIRE_FALSE(std::getline(in, line));
 }
 
 TEST_CASE("Tray show makes icon visible and starts timer") {
