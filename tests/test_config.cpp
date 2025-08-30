@@ -14,6 +14,27 @@ QString resourcePath(const QString& relative) {
     root.cd("..");
     return root.filePath(relative);
 }
+
+struct EnvGuard {
+    QByteArray name;
+    QByteArray old;
+    bool had;
+    EnvGuard(const char* n, const QByteArray& v) : name(n) {
+        had = qEnvironmentVariableIsSet(n);
+        if (had)
+            old = qgetenv(n);
+        if (v.isNull())
+            qunsetenv(n);
+        else
+            qputenv(n, v);
+    }
+    ~EnvGuard() {
+        if (had)
+            qputenv(name.constData(), old);
+        else
+            qunsetenv(name.constData());
+    }
+};
 } // namespace
 
 TEST_CASE("default config values load") {
@@ -124,4 +145,102 @@ TEST_CASE("load thresholds from nohang config") {
         ::unsetenv("XDG_CONFIG_HOME");
     else
         ::setenv("XDG_CONFIG_HOME", oldXdg.constData(), 1);
+}
+
+TEST_CASE("load additional thresholds from config file") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    QDir().mkpath(dir.filePath("nohang"));
+    QFile(dir.filePath("nohang/nohang.conf")).open(QIODevice::WriteOnly);
+    EnvGuard xdg("XDG_CONFIG_HOME", dir.path().toLocal8Bit());
+
+    QTemporaryFile tmp;
+    REQUIRE(tmp.open());
+    QTextStream ts(&tmp);
+    ts << "junk line without equals\n"; // triggers eq==-1 branch
+    ts << "[psi]\n";
+    ts << "avg10_warn_exit = 0.70\n";
+    ts << "avg10_crit_exit = 1.20\n";
+    ts << "[mem]\n";
+    ts << "available_warn_exit_kib = 700\n";
+    ts << "available_crit_exit_kib = 800\n";
+    ts.flush();
+
+    AppConfig cfg;
+    REQUIRE(cfg.load(tmp.fileName()));
+    CHECK(cfg.psi.avg10_warn_exit == Catch::Approx(0.70));
+    CHECK(cfg.psi.avg10_crit_exit == Catch::Approx(1.20));
+    CHECK(cfg.mem.available_warn_exit_kib == 700);
+    CHECK(cfg.mem.available_crit_exit_kib == 800);
+}
+
+TEST_CASE("percent values parsed from HOME nohang config") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+
+    QTemporaryFile meminfo;
+    REQUIRE(meminfo.open());
+    QTextStream mts(&meminfo);
+    mts << "MemTotal:       2048 kB\n";
+    mts.flush();
+
+    QDir().mkpath(dir.filePath(".config/nohang"));
+    QFile conf(dir.filePath(".config/nohang/nohang.conf"));
+    REQUIRE(conf.open(QIODevice::WriteOnly | QIODevice::Text));
+    QTextStream ts(&conf);
+    ts << "warning_threshold_min_mem = 50 %\n";
+    ts.flush();
+    conf.close();
+
+    EnvGuard xdg("XDG_CONFIG_HOME", QByteArray());
+    EnvGuard home("HOME", dir.path().toLocal8Bit());
+    EnvGuard memenv("NOHANG_TR_MEMINFO", meminfo.fileName().toLocal8Bit());
+
+    QTemporaryFile tmp;
+    REQUIRE(tmp.open());
+    AppConfig cfg;
+    REQUIRE(cfg.load(tmp.fileName()));
+    CHECK(cfg.mem.available_warn_kib == 1024); // 50% of 2048
+}
+
+TEST_CASE("invalid nohang values are ignored") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    QDir().mkpath(dir.filePath(".config/nohang"));
+    QFile conf(dir.filePath(".config/nohang/nohang.conf"));
+    REQUIRE(conf.open(QIODevice::WriteOnly | QIODevice::Text));
+    QTextStream ts(&conf);
+    ts << "badline\n";                              // no '='
+    ts << "warning_threshold_min_mem =\n";         // empty
+    ts << "soft_threshold_min_mem = abc\n";        // non-number
+    ts << "hard_threshold_min_mem = 50 %\n";       // percent but meminfo missing
+    ts << "warning_threshold_max_psi = 10 # c\n";  // comment
+    ts.flush();
+    conf.close();
+
+    EnvGuard home("HOME", dir.path().toLocal8Bit());
+    EnvGuard xdg("XDG_CONFIG_HOME", QByteArray());
+    EnvGuard memenv("NOHANG_TR_MEMINFO", QByteArray("/missing"));
+
+    QTemporaryFile tmp;
+    REQUIRE(tmp.open());
+    AppConfig cfg;
+    long defWarn = cfg.mem.available_warn_kib;
+    REQUIRE(cfg.load(tmp.fileName()));
+    // comment parsed psi value
+    CHECK(cfg.psi.avg10_warn == Catch::Approx(0.10));
+    CHECK(cfg.psi.avg10_warn_exit == Catch::Approx(0.08));
+    // invalid memory values leave defaults
+    CHECK(cfg.mem.available_warn_kib == defWarn);
+}
+
+TEST_CASE("load fails when config files missing") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    // create directory at expected config path so QFile::exists is true
+    QDir().mkpath(dir.filePath("nohang/nohang.conf"));
+    EnvGuard xdg("XDG_CONFIG_HOME", dir.path().toLocal8Bit());
+    EnvGuard home("HOME", QByteArray("/nowhere"));
+    AppConfig cfg;
+    CHECK_FALSE(cfg.load("/nonexistent.toml"));
 }

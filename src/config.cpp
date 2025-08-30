@@ -8,7 +8,10 @@
 namespace {
 
 long readMemTotalKiB() {
-    QFile f("/proc/meminfo");
+    const char* override = std::getenv("NOHANG_TR_MEMINFO");
+    QString path = (override && *override) ? QString::fromLocal8Bit(override)
+                                           : QStringLiteral("/proc/meminfo");
+    QFile f(path);
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
         return 0;
     QTextStream ts(&f);
