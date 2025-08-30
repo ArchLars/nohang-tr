@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=nohang-tr
+Comment=Memory pressure tray companion for nohang
+Exec=nohang-tr
+Icon=shield-green
+Terminal=false
+Categories=Utility;
