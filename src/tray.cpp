@@ -35,7 +35,7 @@ Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
 }
 
 void Tray::show() {
-  icon_.setIcon(QIcon(cfg_.palette.green)); // initial
+  icon_.setIcon(QIcon(cfg_.palette.black)); // initial
   icon_.setVisible(true);
   timer_.start();
 }
@@ -150,8 +150,10 @@ Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg,
 
 void Tray::refresh() {
   auto sOpt = probe_->sample();
-  if (!sOpt)
+  if (!sOpt) {
+    icon_.setIcon(QIcon(cfg_.palette.black));
     return;
+  }
   const auto &s = *sOpt;
   bool updateTip = true;
   if (tooltipSample_) {

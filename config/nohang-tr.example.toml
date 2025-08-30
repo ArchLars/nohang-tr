@@ -11,6 +11,7 @@ green = "res/icons/shield-green.svg"
 yellow = "res/icons/shield-yellow.svg"
 orange = "res/icons/shield-orange.svg"
 red = "res/icons/shield-red.svg"
+black = "res/icons/shield-black.svg"
 
 [sample]
 interval_ms = 2000

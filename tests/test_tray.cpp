@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <vector>
 #define private public
 #include "tray.h"
 #undef private
@@ -29,6 +30,7 @@ void applyPalette(Tray &tray) {
   tray.cfg_.palette.yellow = resourcePath("res/icons/shield-yellow.svg");
   tray.cfg_.palette.orange = resourcePath("res/icons/shield-orange.svg");
   tray.cfg_.palette.red = resourcePath("res/icons/shield-red.svg");
+  tray.cfg_.palette.black = resourcePath("res/icons/shield-black.svg");
 }
 
 struct StubProbe : SystemProbe {
@@ -36,7 +38,24 @@ struct StubProbe : SystemProbe {
   explicit StubProbe(const ProbeSample &sample) : s(sample) {}
   std::optional<ProbeSample> sample() const override { return s; }
 };
+
+struct NullProbe : SystemProbe {
+  std::optional<ProbeSample> sample() const override { return std::nullopt; }
+};
 } // namespace
+
+TEST_CASE("icons load") {
+  std::vector<QString> icons = {
+      resourcePath("res/icons/shield-green.svg"),
+      resourcePath("res/icons/shield-yellow.svg"),
+      resourcePath("res/icons/shield-orange.svg"),
+      resourcePath("res/icons/shield-red.svg"),
+      resourcePath("res/icons/shield-black.svg")};
+  for (const auto &path : icons) {
+    INFO(path.toStdString());
+    CHECK(!QIcon(path).isNull());
+  }
+}
 
 TEST_CASE("buildTooltip formats values") {
   ProbeSample s;
@@ -223,6 +242,20 @@ TEST_CASE("Tray show makes icon visible and starts timer") {
   tray.show();
   CHECK(tray.icon_.isVisible());
   CHECK(tray.timer_.isActive());
+  auto actual = tray.icon_.icon().pixmap(16, 16).toImage();
+  auto expected = QIcon(tray.cfg_.palette.black).pixmap(16, 16).toImage();
+  bool same = (actual == expected);
+  CHECK(same);
+}
+
+TEST_CASE("refresh uses black icon when probe fails") {
+  Tray tray(nullptr, std::make_unique<NullProbe>());
+  applyPalette(tray);
+  tray.refresh();
+  auto actual = tray.icon_.icon().pixmap(16, 16).toImage();
+  auto expected = QIcon(tray.cfg_.palette.black).pixmap(16, 16).toImage();
+  bool same = (actual == expected);
+  CHECK(same);
 }
 
 TEST_CASE("refresh sets icon color for each state") {
