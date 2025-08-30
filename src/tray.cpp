@@ -5,7 +5,8 @@
 #include <QAction>
 #include <QCoreApplication>
 
-Tray::Tray(QObject* parent) : QObject(parent), probe_(std::make_unique<SystemProbe>()) {
+Tray::Tray(QObject* parent, std::unique_ptr<SystemProbe> probe)
+    : QObject(parent), probe_(probe ? std::move(probe) : std::make_unique<SystemProbe>()) {
     cfg_.load("config/nohang-tr.example.toml"); // stub path
     auto *menu = new QMenu();
     auto *quit = menu->addAction("Quit");

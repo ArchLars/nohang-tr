@@ -8,7 +8,7 @@
 class Tray : public QObject {
     Q_OBJECT
 public:
-    explicit Tray(QObject* parent=nullptr);
+    explicit Tray(QObject* parent=nullptr, std::unique_ptr<SystemProbe> probe=nullptr);
     void show();
 
     enum class State { Green, Yellow, Orange, Red };
