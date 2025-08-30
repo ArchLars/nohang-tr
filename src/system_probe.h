@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 #include <string>
+#include <utility>
 
 struct ProbeSample {
     long mem_available_kib = 0;
@@ -11,6 +12,7 @@ struct ProbeSample {
 class SystemProbe {
 public:
     ProbeSample sample() const;
+    static std::optional<std::pair<double,double>> parsePsiMemoryLine(const std::string& line);
 private:
     static long readMemAvailableKiB();
     static std::optional<std::pair<double,double>> readPsiMemoryAvg10Avg60();
