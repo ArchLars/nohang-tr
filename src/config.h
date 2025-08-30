@@ -29,3 +29,12 @@ struct AppConfig {
      */
     bool load(const QString& path);
 };
+
+/**
+ * Determine the configuration file path.
+ *
+ * When \a cliPath is provided it is returned directly. Otherwise the path is
+ * resolved according to the XDG Base Directory specification using
+ * `XDG_CONFIG_HOME` and falling back to `$HOME/.config/nohang-tr/nohang-tr.toml`.
+ */
+QString resolveConfigPath(const QString& cliPath = {});

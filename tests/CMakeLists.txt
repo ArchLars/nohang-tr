@@ -3,6 +3,7 @@ add_executable(unit-test
     test_config.cpp
     test_system_probe.cpp
     test_tray.cpp
+    test_config_path.cpp
     ../src/system_probe.cpp
     ../src/tray.cpp
     ../src/config.cpp)

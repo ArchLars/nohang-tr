@@ -1,6 +1,8 @@
 #include "config.h"
 #include <QFile>
 #include <QTextStream>
+#include <cstdlib>
+#include <filesystem>
 
 bool AppConfig::load(const QString& path) {
     QFile f(path);
@@ -61,5 +63,24 @@ bool AppConfig::load(const QString& path) {
         }
     }
     return true;
+}
+
+QString resolveConfigPath(const QString& cliPath) {
+    if (!cliPath.isEmpty())
+        return cliPath;
+    const char* xdg = std::getenv("XDG_CONFIG_HOME");
+    std::filesystem::path base;
+    if (xdg && *xdg) {
+        base = xdg;
+    } else {
+        const char* home = std::getenv("HOME");
+        if (home && *home)
+            base = std::filesystem::path(home) / ".config";
+        else
+            base = std::filesystem::path(".config");
+    }
+    base /= "nohang-tr";
+    base /= "nohang-tr.toml";
+    return QString::fromStdString(base.string());
 }
 
