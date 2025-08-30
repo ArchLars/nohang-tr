@@ -83,6 +83,24 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg) {
     tip += QStringLiteral("MemAvailable: n/a\n");
   }
 
+  if (s.swap_free_kib) {
+    tip += QString("SwapFree: %1\n").arg(formatKib(*s.swap_free_kib));
+    auto addSwap = [&](const char *label, long thr) {
+      double ratio = 1.0 - static_cast<double>(*s.swap_free_kib) / thr;
+      ratio = std::clamp(ratio, 0.0, 1.0);
+      double pct = ratio * 100.0;
+      tip += QString(" %1 %2 [%3] %4%\n")
+                 .arg(label)
+                 .arg(formatKib(thr))
+                 .arg(makeBar(ratio))
+                 .arg(pct, 0, 'f', 0);
+    };
+    addSwap("warn", cfg.swap.free_warn_kib);
+    addSwap("crit", cfg.swap.free_crit_kib);
+  } else {
+    tip += QStringLiteral("SwapFree: n/a\n");
+  }
+
   tip += QString("PSI some avg10: %1 (warn %2, crit %3)\n")
              .arg(s.some.avg10, 0, 'f', 2)
              .arg(cfg.psi.avg10_warn, 0, 'f', 2)
@@ -116,20 +134,30 @@ Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg,
   const long memCritThr = (p >= rank(State::Red))
                               ? cfg.mem.available_crit_exit_kib
                               : cfg.mem.available_crit_kib;
+  const long swapCritThr = (p >= rank(State::Red))
+                              ? cfg.swap.free_crit_exit_kib
+                              : cfg.swap.free_crit_kib;
   const double psiCritThr =
       (p >= rank(State::Red)) ? cfg.psi.avg10_crit_exit : cfg.psi.avg10_crit;
   if ((s.mem_available_kib && *s.mem_available_kib <= memCritThr) ||
+      (s.swap_free_kib && *s.swap_free_kib <= swapCritThr) ||
       s.some.avg10 >= psiCritThr)
     return State::Red;
 
   const long memWarnThr = (p >= rank(State::Orange))
                               ? cfg.mem.available_warn_exit_kib
                               : cfg.mem.available_warn_kib;
-  if (s.mem_available_kib && *s.mem_available_kib <= memWarnThr)
+  const long swapWarnThr = (p >= rank(State::Orange))
+                               ? cfg.swap.free_warn_exit_kib
+                               : cfg.swap.free_warn_kib;
+  if ((s.mem_available_kib && *s.mem_available_kib <= memWarnThr) ||
+      (s.swap_free_kib && *s.swap_free_kib <= swapWarnThr))
     return State::Orange;
 
   const long memWarnMarginThr = cfg.mem.available_warn_exit_kib;
-  if (s.mem_available_kib && *s.mem_available_kib <= memWarnMarginThr)
+  const long swapWarnMarginThr = cfg.swap.free_warn_exit_kib;
+  if ((s.mem_available_kib && *s.mem_available_kib <= memWarnMarginThr) ||
+      (s.swap_free_kib && *s.swap_free_kib <= swapWarnMarginThr))
     return State::Yellow;
 
   if (prevSomeAvg10) {
