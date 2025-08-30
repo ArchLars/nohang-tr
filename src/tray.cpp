@@ -49,19 +49,6 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg,
     }
     return QString("%1 MiB").arg(mib, 0, 'f', 1);
   };
-  auto colorFor = [](State st) {
-    switch (st) {
-    case State::Green:
-      return "green";
-    case State::Yellow:
-      return "yellow";
-    case State::Orange:
-      return "orange";
-    case State::Red:
-      return "red";
-    }
-    return "white";
-  };
   auto makeBar = [&](double ratio) {
     ratio = std::clamp(ratio, 0.0, 1.0);
     int filled = static_cast<int>(ratio * 10);
@@ -69,11 +56,7 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg,
     QChar empty = QChar(0x2591); // '░'
     QString filledStr(filled, full);
     QString emptyStr(10 - filled, empty);
-    return QString("<span foreground='%1'>%2</span><span "
-                   "foreground='gray'>%3</span>")
-        .arg(colorFor(state))
-        .arg(filledStr)
-        .arg(emptyStr);
+    return filledStr + emptyStr;
   };
 
   QString tip;
