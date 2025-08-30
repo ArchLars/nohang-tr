@@ -14,7 +14,7 @@ public:
 
     enum class State { Green, Yellow, Orange, Red };
     static QString buildTooltip(const ProbeSample& s);
-    static State decide(const ProbeSample& s, const AppConfig& cfg);
+    static State decide(const ProbeSample& s, const AppConfig& cfg, State prev);
 
 private:
     void refresh();
@@ -23,4 +23,5 @@ private:
     QTimer timer_;
     AppConfig cfg_;
     std::unique_ptr<SystemProbe> probe_;
+    State state_ = State::Green;
 };

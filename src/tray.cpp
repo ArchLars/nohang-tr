@@ -32,14 +32,28 @@ QString Tray::buildTooltip(const ProbeSample& s) {
         .arg(s.some.avg60, 0, 'f', 2);
 }
 
-Tray::State Tray::decide(const ProbeSample& s, const AppConfig& cfg) {
-    if ((s.mem_available_kib && *s.mem_available_kib <= cfg.mem.available_crit_kib) ||
-        s.some.avg10 >= cfg.psi.avg10_crit)
+Tray::State Tray::decide(const ProbeSample& s, const AppConfig& cfg, State prev) {
+    auto rank = [](State st) { return static_cast<int>(st); };
+    const int p = rank(prev);
+
+    const long memCritThr = (p >= rank(State::Red)) ? cfg.mem.available_crit_exit_kib
+                                                    : cfg.mem.available_crit_kib;
+    const double psiCritThr = (p >= rank(State::Red)) ? cfg.psi.avg10_crit_exit
+                                                      : cfg.psi.avg10_crit;
+    if ((s.mem_available_kib && *s.mem_available_kib <= memCritThr) ||
+        s.some.avg10 >= psiCritThr)
         return State::Red;
-    if (s.mem_available_kib && *s.mem_available_kib <= cfg.mem.available_warn_kib)
+
+    const long memWarnThr = (p >= rank(State::Orange)) ? cfg.mem.available_warn_exit_kib
+                                                       : cfg.mem.available_warn_kib;
+    if (s.mem_available_kib && *s.mem_available_kib <= memWarnThr)
         return State::Orange;
-    if (s.some.avg10 >= cfg.psi.avg10_warn)
+
+    const double psiWarnThr = (p >= rank(State::Yellow)) ? cfg.psi.avg10_warn_exit
+                                                         : cfg.psi.avg10_warn;
+    if (s.some.avg10 >= psiWarnThr)
         return State::Yellow;
+
     return State::Green;
 }
 
@@ -48,7 +62,8 @@ void Tray::refresh() {
     if (!sOpt) return;
     const auto& s = *sOpt;
     icon_.setToolTip(buildTooltip(s));
-    switch (decide(s, cfg_)) {
+    state_ = decide(s, cfg_, state_);
+    switch (state_) {
         case State::Green:  icon_.setIcon(QIcon(cfg_.palette.green));  break;
         case State::Yellow: icon_.setIcon(QIcon(cfg_.palette.yellow)); break;
         case State::Orange: icon_.setIcon(QIcon(cfg_.palette.orange)); break;
