@@ -175,6 +175,34 @@ TEST_CASE("load additional thresholds from config file") {
     CHECK(cfg.mem.available_crit_exit_kib == 800);
 }
 
+TEST_CASE("load psi derivative and swap thresholds from config") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    QDir().mkpath(dir.filePath("nohang"));
+    QFile(dir.filePath("nohang/nohang.conf")).open(QIODevice::WriteOnly);
+    EnvGuard xdg("XDG_CONFIG_HOME", dir.path().toLocal8Bit());
+
+    QTemporaryFile tmp;
+    REQUIRE(tmp.open());
+    QTextStream ts(&tmp);
+    ts << "[psi]\n";
+    ts << "avg10_deriv_warn = 0.42\n";
+    ts << "[swap]\n";
+    ts << "free_warn_kib = 1\n";
+    ts << "free_warn_exit_kib = 2\n";
+    ts << "free_crit_kib = 3\n";
+    ts << "free_crit_exit_kib = 4\n";
+    ts.flush();
+
+    AppConfig cfg;
+    REQUIRE(cfg.load(tmp.fileName()));
+    CHECK(cfg.psi.avg10_deriv_warn == Catch::Approx(0.42));
+    CHECK(cfg.swap.free_warn_kib == 1);
+    CHECK(cfg.swap.free_warn_exit_kib == 2);
+    CHECK(cfg.swap.free_crit_kib == 3);
+    CHECK(cfg.swap.free_crit_exit_kib == 4);
+}
+
 TEST_CASE("percent values parsed from HOME nohang config") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
