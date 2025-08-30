@@ -44,11 +44,23 @@ TEST_CASE("buildTooltip formats values") {
     s.full.avg10 = 1.5;
     AppConfig cfg;
     auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tooltip.find("MemAvailable: 1234 KiB") != std::string::npos);
+    REQUIRE(tooltip.find("MemAvailable: 1.2 MiB") != std::string::npos);
+    REQUIRE(tooltip.find("warn 512.0 MiB") != std::string::npos);
+    REQUIRE(tooltip.find("crit 256.0 MiB") != std::string::npos);
     REQUIRE(tooltip.find("PSI some avg10: 0.50") != std::string::npos);
     REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
-    REQUIRE(tooltip.find("warn") != std::string::npos);
-    REQUIRE(tooltip.find("crit") != std::string::npos);
+}
+
+TEST_CASE("buildTooltip clamps percentage at 100") {
+    AppConfig cfg;
+    ProbeSample s;
+    s.mem_available_kib = cfg.mem.available_warn_kib * 2;
+    s.some.avg10 = cfg.psi.avg10_warn * 2;
+    auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
+    size_t pos = tooltip.find("100%");
+    REQUIRE(pos != std::string::npos);
+    pos = tooltip.find("100%", pos + 1);
+    REQUIRE(pos != std::string::npos);
 }
 
 TEST_CASE("decide returns expected state") {
