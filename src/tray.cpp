@@ -113,8 +113,8 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg,
     QChar empty = QChar(0x2591); // '░'
     QString filledStr(filled, full);
     QString emptyStr(10 - filled, empty);
-    return QString("<span style='color:%1'>%2</span><span "
-                   "style='color:gray'>%3</span>")
+    return QString("<span foreground='%1'>%2</span><span "
+                   "foreground='gray'>%3</span>")
         .arg(colorFor(state))
         .arg(filledStr)
         .arg(emptyStr);
