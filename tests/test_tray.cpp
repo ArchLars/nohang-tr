@@ -99,12 +99,12 @@ TEST_CASE("buildTooltip uses lowest memory indicator") {
   auto tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
   REQUIRE(tip.find("Pressure:") != std::string::npos);
   REQUIRE(tip.find("0%") != std::string::npos);
-  REQUIRE(tip.find("foreground='green'") != std::string::npos);
+  REQUIRE(tip.find("░░░░░░░░░░") != std::string::npos);
 
   s.mem_free_kib = 0; // forces bar to 100%
   tip = Tray::buildTooltip(s, cfg, Tray::State::Red).toStdString();
   REQUIRE(tip.find("100%") != std::string::npos);
-  REQUIRE(tip.find("foreground='red'>██████████") != std::string::npos);
+  REQUIRE(tip.find("██████████") != std::string::npos);
 }
 
 TEST_CASE("buildTooltip lists PSI triggers") {
@@ -117,23 +117,18 @@ TEST_CASE("buildTooltip lists PSI triggers") {
   REQUIRE(tip.find("trigger full: 20us/200us") != std::string::npos);
 }
 
-TEST_CASE("buildTooltip defaults to white for unknown state") {
+TEST_CASE("buildTooltip omits color markup") {
   AppConfig cfg;
   ProbeSample s;
   s.mem_available_kib = cfg.mem.available_warn_kib; // ensure bar rendered
   auto tip =
       Tray::buildTooltip(s, cfg, static_cast<Tray::State>(99)).toStdString();
-  REQUIRE(tip.find("foreground='white'") != std::string::npos);
-}
+  CHECK(tip.find("foreground='") == std::string::npos);
 
-TEST_CASE("buildTooltip uses pango markup for pressure bar") {
-  AppConfig cfg;
-  ProbeSample s;
   s.mem_available_kib = cfg.mem.available_warn_kib * 2;
-  auto tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
+  tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
   CHECK(tip.find("style='color") == std::string::npos);
-  CHECK(tip.find("foreground='green'") != std::string::npos);
-  CHECK(tip.find("foreground='gray'") != std::string::npos);
+  CHECK(tip.find("foreground='") == std::string::npos);
 }
 
 TEST_CASE("decide returns expected state") {
