@@ -21,13 +21,6 @@ endif()
 # Qt
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-# Ayatana AppIndicator 3 (optional but recommended for GNOME)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(AyatanaAppIndicator3 QUIET ayatana-appindicator3-0.1)
-if(AyatanaAppIndicator3_FOUND)
-  add_compile_definitions(HAVE_AYATANA_APPINDICATOR3=1)
-endif()
-
 enable_testing()
 
 add_subdirectory(src)

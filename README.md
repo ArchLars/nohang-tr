@@ -16,12 +16,11 @@ Built with Qt 6, CMake and Ninja; tests use Catch2.
 - Linux with PSI (`/proc/pressure`) available
 - `nohang` for configuration parsing (install separately from the AUR)
 - Qt 6 Widgets, CMake, Ninja
-- libayatana-appindicator3 (for GNOME compatibility)
+- Vulkan headers (e.g., `libvulkan-dev`)
 - Catch2 for tests (optional; tests are skipped if absent)
 - gcovr for coverage reports
 
-See `apt-packages.txt` for packages installed on Ubuntu CI. GNOME users may
-need AppIndicator support.
+See `apt-packages.txt` for packages installed on Ubuntu CI.
 
 ## Installation and updates
 
