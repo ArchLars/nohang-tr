@@ -45,12 +45,11 @@ struct NullProbe : SystemProbe {
 } // namespace
 
 TEST_CASE("icons load") {
-  std::vector<QString> icons = {
-      resourcePath("res/icons/shield-green.svg"),
-      resourcePath("res/icons/shield-yellow.svg"),
-      resourcePath("res/icons/shield-orange.svg"),
-      resourcePath("res/icons/shield-red.svg"),
-      resourcePath("res/icons/shield-black.svg")};
+  std::vector<QString> icons = {resourcePath("res/icons/shield-green.svg"),
+                                resourcePath("res/icons/shield-yellow.svg"),
+                                resourcePath("res/icons/shield-orange.svg"),
+                                resourcePath("res/icons/shield-red.svg"),
+                                resourcePath("res/icons/shield-black.svg")};
   for (const auto &path : icons) {
     INFO(path.toStdString());
     CHECK(!QIcon(path).isNull());
@@ -68,10 +67,8 @@ TEST_CASE("buildTooltip formats values") {
   s.some.avg60 = 1.5;
   s.full.avg10 = 1.5;
   AppConfig cfg;
-  auto tooltip =
-      Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
-  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB / 2.0 GiB") !=
-          std::string::npos);
+  auto tooltip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
+  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB / 2.0 GiB") != std::string::npos);
   REQUIRE(tooltip.find("MemFree: 1.0 MiB") != std::string::npos);
   REQUIRE(tooltip.find("SwapFree: 1.2 MiB") != std::string::npos);
   REQUIRE(tooltip.find("Cached: 2.0 MiB") != std::string::npos);
@@ -99,8 +96,7 @@ TEST_CASE("buildTooltip uses lowest memory indicator") {
   s.swap_free_kib = cfg.swap.free_warn_kib * 2;
   s.cached_kib = cfg.mem.available_warn_kib * 2;
 
-  auto tip =
-      Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
+  auto tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
   REQUIRE(tip.find("Pressure:") != std::string::npos);
   REQUIRE(tip.find("0%") != std::string::npos);
   REQUIRE(tip.find("style='color:green'") != std::string::npos);
@@ -173,11 +169,9 @@ TEST_CASE("decide preempts on rapid PSI increase") {
   s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
   s.some.avg10 = 0.4; // below warn threshold
   // With previous avg10 0.1 and 2s interval, rate = 0.15 > 0.1 threshold
-  REQUIRE(Tray::decide(s, cfg, Tray::State::Green, 0.1) ==
-          Tray::State::Yellow);
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green, 0.1) == Tray::State::Yellow);
   s.some.avg10 = 0.15; // rate = 0.025 < threshold
-  REQUIRE(Tray::decide(s, cfg, Tray::State::Green, 0.1) ==
-          Tray::State::Green);
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green, 0.1) == Tray::State::Green);
 }
 
 TEST_CASE("hysteresis prevents state flapping") {
@@ -314,8 +308,7 @@ TEST_CASE("refresh sets icon color for each state") {
     applyPalette(tray);
     auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() ==
-          Tray::buildTooltip(s, tray.cfg_, state));
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("yellow psi") {
@@ -326,8 +319,7 @@ TEST_CASE("refresh sets icon color for each state") {
     applyPalette(tray);
     auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() ==
-          Tray::buildTooltip(s, tray.cfg_, state));
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("yellow mem") {
@@ -338,8 +330,7 @@ TEST_CASE("refresh sets icon color for each state") {
     applyPalette(tray);
     auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() ==
-          Tray::buildTooltip(s, tray.cfg_, state));
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("orange") {
@@ -350,8 +341,7 @@ TEST_CASE("refresh sets icon color for each state") {
     applyPalette(tray);
     auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() ==
-          Tray::buildTooltip(s, tray.cfg_, state));
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("red") {
@@ -361,8 +351,7 @@ TEST_CASE("refresh sets icon color for each state") {
     applyPalette(tray);
     auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() ==
-          Tray::buildTooltip(s, tray.cfg_, state));
+    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_, state));
   }
 }
 
@@ -379,7 +368,8 @@ TEST_CASE("refresh caches tooltip until significant change") {
   auto initial = tray.icon_.toolTip();
 
   // minor change (<5%), stays above thresholds
-  probe->s.mem_available_kib = *s.mem_available_kib - *s.mem_available_kib * 3 / 100;
+  probe->s.mem_available_kib =
+      *s.mem_available_kib - *s.mem_available_kib * 3 / 100;
   probe->s.some.avg10 = 0.103;
   tray.refresh();
   CHECK(tray.icon_.toolTip() == initial);
@@ -394,7 +384,8 @@ TEST_CASE("refresh caches tooltip until significant change") {
 TEST_CASE("refresh updates tooltip on threshold crossing") {
   AppConfig cfg;
   ProbeSample s;
-  long base = cfg.mem.available_warn_kib + cfg.mem.available_warn_kib / 50; // 2% above warn
+  long base = cfg.mem.available_warn_kib +
+              cfg.mem.available_warn_kib / 50; // 2% above warn
   s.mem_available_kib = base;
   s.some.avg10 = 0.0;
   auto *probe = new StubProbe(s);
@@ -405,7 +396,8 @@ TEST_CASE("refresh updates tooltip on threshold crossing") {
   auto tipAbove = tray.icon_.toolTip();
 
   // small change (<5%) but crosses warn threshold
-  probe->s.mem_available_kib = cfg.mem.available_warn_kib - cfg.mem.available_warn_kib / 50;
+  probe->s.mem_available_kib =
+      cfg.mem.available_warn_kib - cfg.mem.available_warn_kib / 50;
   tray.refresh();
   CHECK(tray.icon_.toolTip() != tipAbove);
 }
@@ -460,4 +452,33 @@ TEST_CASE("refresh updates tooltip on PSI full change") {
   probe->s.full.avg10 = 0.2; // >5% diff
   tray.refresh();
   CHECK(tray.icon_.toolTip() != tip);
+}
+
+TEST_CASE("shouldUseAppIndicator detects GNOME") {
+  QByteArray old = qgetenv("XDG_CURRENT_DESKTOP");
+
+  qputenv("XDG_CURRENT_DESKTOP", "GNOME");
+  {
+    Tray tray(nullptr, std::make_unique<NullProbe>());
+    applyPalette(tray);
+    tray.show();
+#ifdef HAVE_AYATANA_APPINDICATOR3
+    CHECK(Tray::shouldUseAppIndicator());
+#else
+    CHECK_FALSE(Tray::shouldUseAppIndicator());
+#endif
+  }
+
+  qputenv("XDG_CURRENT_DESKTOP", "X-Cinnamon");
+  {
+    Tray tray(nullptr, std::make_unique<NullProbe>());
+    applyPalette(tray);
+    tray.show();
+    CHECK_FALSE(Tray::shouldUseAppIndicator());
+  }
+
+  if (old.isNull())
+    qunsetenv("XDG_CURRENT_DESKTOP");
+  else
+    qputenv("XDG_CURRENT_DESKTOP", old);
 }
