@@ -108,7 +108,7 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg) {
 }
 
 Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg,
-                         State prev) {
+                         State prev, std::optional<double> prevSomeAvg10) {
   auto rank = [](State st) { return static_cast<int>(st); };
   const int p = rank(prev);
 
@@ -131,6 +131,14 @@ Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg,
   if (s.mem_available_kib && *s.mem_available_kib <= memWarnMarginThr)
     return State::Yellow;
 
+  if (prevSomeAvg10) {
+    double rate =
+        (s.some.avg10 - *prevSomeAvg10) /
+        (static_cast<double>(cfg.sample_interval_ms) / 1000.0);
+    if (rate >= cfg.psi.avg10_deriv_warn)
+      return State::Yellow;
+  }
+
   const double psiWarnThr =
       (p >= rank(State::Yellow)) ? cfg.psi.avg10_warn_exit : cfg.psi.avg10_warn;
   if (s.some.avg10 >= psiWarnThr)
@@ -145,7 +153,8 @@ void Tray::refresh() {
     return;
   const auto &s = *sOpt;
   icon_.setToolTip(buildTooltip(s, cfg_));
-  state_ = decide(s, cfg_, state_);
+  state_ = decide(s, cfg_, state_, prevSomeAvg10_);
+  prevSomeAvg10_ = s.some.avg10;
   switch (state_) {
   case State::Green:
     icon_.setIcon(QIcon(cfg_.palette.green));

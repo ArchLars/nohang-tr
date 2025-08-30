@@ -155,6 +155,8 @@ bool AppConfig::load(const QString& path) {
                         psi.avg10_crit = v;
                     else if (key == "avg10_crit_exit")
                         psi.avg10_crit_exit = v;
+                    else if (key == "avg10_deriv_warn")
+                        psi.avg10_deriv_warn = v;
                 }
             } else if (section == "psi.trigger") {
                 auto parts = value.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);

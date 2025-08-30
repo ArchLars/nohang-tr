@@ -2,6 +2,7 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <memory>
+#include <optional>
 #include "config.h"
 #include "system_probe.h"
 
@@ -43,8 +44,10 @@ public:
 
     /**
      * @brief Decide next state based on a sample and previous state.
+     * @param prevSomeAvg10 Previous PSI some avg10 value to compute rate.
      */
-    static State decide(const ProbeSample& s, const AppConfig& cfg, State prev);
+    static State decide(const ProbeSample& s, const AppConfig& cfg, State prev,
+                        std::optional<double> prevSomeAvg10 = std::nullopt);
 
 private:
     void refresh();
@@ -54,4 +57,5 @@ private:
     AppConfig cfg_;
     std::unique_ptr<SystemProbe> probe_;
     State state_ = State::Green;
+    std::optional<double> prevSomeAvg10_;
 };
