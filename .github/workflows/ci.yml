@@ -12,6 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare APT cache directories
+        run: |
+          sudo mkdir -p /var/cache/apt/archives /var/lib/apt/lists
+          sudo chown -R $USER:$USER /var/cache/apt/archives /var/lib/apt/lists
+
       - name: Cache APT archives
         uses: actions/cache@v4
         with:
