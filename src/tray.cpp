@@ -40,7 +40,8 @@ void Tray::show() {
   timer_.start();
 }
 
-QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg) {
+QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg,
+                           State state) {
   auto formatKib = [](long kib) {
     double mib = kib / 1024.0;
     if (mib >= 1024.0) {
@@ -49,13 +50,30 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg) {
     }
     return QString("%1 MiB").arg(mib, 0, 'f', 1);
   };
-  auto makeBar = [](double ratio) {
+  auto colorFor = [](State st) {
+    switch (st) {
+    case State::Green:
+      return "green";
+    case State::Yellow:
+      return "yellow";
+    case State::Orange:
+      return "orange";
+    case State::Red:
+      return "red";
+    }
+    return "white";
+  };
+  auto makeBar = [&](double ratio) {
     ratio = std::clamp(ratio, 0.0, 1.0);
     int filled = static_cast<int>(ratio * 10);
     QChar full = QChar(0x2588);  // '█'
     QChar empty = QChar(0x2591); // '░'
-    return QString("%1%2").arg(QString(filled, full),
-                               QString(10 - filled, empty));
+    QString filledStr(filled, full);
+    QString emptyStr(10 - filled, empty);
+    return QString("<span style='color:%1'>%2</span><span style='color:gray'>%3</span>")
+        .arg(colorFor(state))
+        .arg(filledStr)
+        .arg(emptyStr);
   };
 
   QString tip;
@@ -67,38 +85,46 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg) {
     } else {
       tip += QString("MemAvailable: %1\n").arg(formatKib(*s.mem_available_kib));
     }
-    auto addMem = [&](const char *label, long thr) {
-      double ratio = 1.0 - static_cast<double>(*s.mem_available_kib) / thr;
-      ratio = std::clamp(ratio, 0.0, 1.0);
-      double pct = ratio * 100.0;
-      tip += QString(" %1 %2 [%3] %4%\n")
-                 .arg(label)
-                 .arg(formatKib(thr))
-                 .arg(makeBar(ratio))
-                 .arg(pct, 0, 'f', 0);
-    };
-    addMem("warn", cfg.mem.available_warn_kib);
-    addMem("crit", cfg.mem.available_crit_kib);
   } else {
     tip += QStringLiteral("MemAvailable: n/a\n");
   }
 
-  if (s.swap_free_kib) {
+  if (s.mem_free_kib)
+    tip += QString("MemFree: %1\n").arg(formatKib(*s.mem_free_kib));
+  else
+    tip += QStringLiteral("MemFree: n/a\n");
+
+  if (s.swap_free_kib)
     tip += QString("SwapFree: %1\n").arg(formatKib(*s.swap_free_kib));
-    auto addSwap = [&](const char *label, long thr) {
-      double ratio = 1.0 - static_cast<double>(*s.swap_free_kib) / thr;
-      ratio = std::clamp(ratio, 0.0, 1.0);
-      double pct = ratio * 100.0;
-      tip += QString(" %1 %2 [%3] %4%\n")
-                 .arg(label)
-                 .arg(formatKib(thr))
-                 .arg(makeBar(ratio))
-                 .arg(pct, 0, 'f', 0);
-    };
-    addSwap("warn", cfg.swap.free_warn_kib);
-    addSwap("crit", cfg.swap.free_crit_kib);
-  } else {
+  else
     tip += QStringLiteral("SwapFree: n/a\n");
+
+  if (s.cached_kib)
+    tip += QString("Cached: %1\n").arg(formatKib(*s.cached_kib));
+  else
+    tip += QStringLiteral("Cached: n/a\n");
+
+  std::vector<double> ratios;
+  if (s.mem_available_kib)
+    ratios.push_back(static_cast<double>(*s.mem_available_kib) /
+                     cfg.mem.available_warn_kib);
+  if (s.mem_free_kib)
+    ratios.push_back(static_cast<double>(*s.mem_free_kib) /
+                     cfg.mem.available_warn_kib);
+  if (s.cached_kib)
+    ratios.push_back(static_cast<double>(*s.cached_kib) /
+                     cfg.mem.available_warn_kib);
+  if (s.swap_free_kib)
+    ratios.push_back(static_cast<double>(*s.swap_free_kib) /
+                     cfg.swap.free_warn_kib);
+  if (!ratios.empty()) {
+    double minRatio = *std::min_element(ratios.begin(), ratios.end());
+    double usage = 1.0 - std::clamp(minRatio, 0.0, 1.0);
+    tip += QString("Pressure: [%1] %2%\n")
+               .arg(makeBar(usage))
+               .arg(usage * 100.0, 0, 'f', 0);
+  } else {
+    tip += QStringLiteral("Pressure: n/a\n");
   }
 
   tip += QString("PSI some avg10: %1 (warn %2, crit %3)\n")
@@ -183,6 +209,7 @@ void Tray::refresh() {
     return;
   }
   const auto &s = *sOpt;
+  auto nextState = decide(s, cfg_, state_, prevSomeAvg10_);
   bool updateTip = true;
   if (tooltipSample_) {
     auto diffPct = [](double a, double b) {
@@ -226,11 +253,11 @@ void Tray::refresh() {
   }
 
   if (updateTip) {
-    tooltipCache_ = buildTooltip(s, cfg_);
+    tooltipCache_ = buildTooltip(s, cfg_, nextState);
     tooltipSample_ = s;
   }
   icon_.setToolTip(tooltipCache_);
-  state_ = decide(s, cfg_, state_, prevSomeAvg10_);
+  state_ = nextState;
   prevSomeAvg10_ = s.some.avg10;
   switch (state_) {
   case State::Green:
