@@ -10,8 +10,7 @@ Coding rules:
 - Single responsibility. `system_probe` has no Qt types. `tray` has no I/O to `/proc`.
 - TDD. Add a failing test, make it pass, refactor.
 - Public headers documented. Keep compile green in CI.
-- Document public headers with brief Doxygen-style comments that describe class responsibilities, meanings, and roles. After writing code, run `doxygen` to regenerate API documentation. Keep compile green in CI.
-- Ensuring completeness and correctness: When writing code, check relevant documentation or man pages. On minimized systems where man pages are removed, run `unminimize` and ensure `man-db` is installed, or unpack `manpages` tarballs with `zstd`. Reference `nohang` docs under `/usr/share/doc/nohang/` when implementing integration.
+- Ensuring completeness and correctness: When writing code, check relevant documentation by unpacking `manpages` tarballs with `zstd`. 
 
 Prompts the agent should accept:
 - “Add a function in system_probe to parse PSI lines into struct fields. Write tests.”
