@@ -53,6 +53,17 @@ TEST_CASE("buildTooltip formats values") {
     REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
 }
 
+TEST_CASE("buildTooltip indicates config source") {
+    ProbeSample s; // defaults ok
+    AppConfig cfg;
+    auto tip = Tray::buildTooltip(s, cfg).toStdString();
+    REQUIRE(tip.find("Config: default") != std::string::npos);
+
+    cfg.source = AppConfig::Source::Nohang;
+    tip = Tray::buildTooltip(s, cfg).toStdString();
+    REQUIRE(tip.find("Config: nohang") != std::string::npos);
+}
+
 TEST_CASE("buildTooltip fills bars as memory becomes scarce") {
     AppConfig cfg;
     ProbeSample s;

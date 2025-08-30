@@ -89,7 +89,9 @@ QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
         tip += QString(" trigger full: %1us/%2us\n").arg(t.stall_us).arg(t.window_us);
     }
 
-    tip += QString("interval: %1 ms").arg(cfg.sample_interval_ms);
+    tip += QString("interval: %1 ms\n").arg(cfg.sample_interval_ms);
+    tip += QString("Config: %1").arg(cfg.source == AppConfig::Source::Nohang ? "nohang"
+                                            : "default");
     return tip;
 }
 

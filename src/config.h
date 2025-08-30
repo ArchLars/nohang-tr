@@ -3,6 +3,15 @@
 #include <optional>
 
 struct AppConfig {
+    /**
+     * @brief Where configuration values were sourced from.
+     */
+    enum class Source {
+        Default, ///< Built-in defaults.
+        Nohang   ///< Parsed from nohang.conf.
+    };
+
+    Source source = Source::Default;
     struct Psi {
         struct Trigger {
             long stall_us = 0;
