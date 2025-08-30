@@ -13,6 +13,13 @@
 std::optional<long> parseMemAvailable(std::istream& in);
 
 /**
+ * Parse the MemTotal value in KiB from a meminfo-like stream.
+ * @param in Input stream providing lines formatted as in /proc/meminfo.
+ * @return Parsed value in KiB or std::nullopt if the key is absent.
+ */
+std::optional<long> parseMemTotal(std::istream& in);
+
+/**
  * @brief Pressure stall information values.
  */
 struct PsiValues {
@@ -27,6 +34,7 @@ struct PsiValues {
  */
 struct ProbeSample {
     std::optional<long> mem_available_kib; ///< MemAvailable in KiB if readable.
+    std::optional<long> mem_total_kib;     ///< MemTotal in KiB if readable.
     PsiValues some;                       ///< PSI "some" memory values.
     PsiValues full;                       ///< PSI "full" memory values.
 };
@@ -87,6 +95,7 @@ public:
 
 private:
     std::optional<long> readMemAvailableKiB() const;
+    std::optional<long> readMemTotalKiB() const;
     std::optional<std::pair<PsiValues, PsiValues>> readPsiMemory() const;
 
     std::string meminfoPath_;

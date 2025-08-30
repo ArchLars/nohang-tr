@@ -42,6 +42,15 @@ std::optional<long> parseMemAvailable(std::istream& in) {
     return std::nullopt;
 }
 
+std::optional<long> parseMemTotal(std::istream& in) {
+    std::string k, unit;
+    long v = 0;
+    while (in >> k >> v >> unit) {
+        if (k == "MemTotal:") return v;
+    }
+    return std::nullopt;
+}
+
 SystemProbe::SystemProbe(std::string meminfoPath, std::string psiPath)
     : meminfoPath_(std::move(meminfoPath)), psiPath_(std::move(psiPath)) {}
 
@@ -53,6 +62,12 @@ std::optional<long> SystemProbe::readMemAvailableKiB() const {
     std::ifstream f(meminfoPath_);
     if (!f) return std::nullopt;
     return parseMemAvailable(f);
+}
+
+std::optional<long> SystemProbe::readMemTotalKiB() const {
+    std::ifstream f(meminfoPath_);
+    if (!f) return std::nullopt;
+    return parseMemTotal(f);
 }
 
 std::optional<std::pair<SystemProbe::PsiType, PsiValues>> SystemProbe::parsePsiMemoryLine(const std::string& line) {
@@ -130,6 +145,7 @@ std::optional<ProbeSample> SystemProbe::sample() const {
     }
     ProbeSample s;
     s.mem_available_kib = readMemAvailableKiB();
+    s.mem_total_kib = readMemTotalKiB();
     auto psi = readPsiMemory();
     if (!psi) return std::nullopt;
     s.some = psi->first;
