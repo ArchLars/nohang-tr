@@ -18,3 +18,7 @@ Prompts the agent should accept:
 
 Style:
 - Use `std::optional`, `std::chrono`, `std::filesystem`. No exceptions across module boundaries.
+
+Testing and coverage:
+- After building and running tests, execute `gcovr -r . --exclude build -e src/main.cpp --fail-under-line 95`.
+- If the coverage check fails (coverage <95%), investigate and fix the code or tests, then rerun until it passes.
