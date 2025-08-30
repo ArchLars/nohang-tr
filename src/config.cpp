@@ -78,12 +78,14 @@ void loadNohangConfig(AppConfig& cfg) {
             double v = value.toDouble(&ok);
             if (ok) {
                 cfg.psi.avg10_warn = v / 100.0;
-                cfg.psi.avg10_warn_exit = cfg.psi.avg10_warn;
+                cfg.psi.avg10_warn_exit = cfg.psi.avg10_warn * 0.8;
             }
         } else if (key == "soft_threshold_max_psi") {
             double v = value.toDouble(&ok);
-            if (ok)
+            if (ok) {
                 cfg.psi.avg10_crit = v / 100.0;
+                cfg.psi.avg10_crit_exit = cfg.psi.avg10_crit * 0.8;
+            }
         } else if (key == "hard_threshold_max_psi") {
             double v = value.toDouble(&ok);
             if (ok)
@@ -92,12 +94,14 @@ void loadNohangConfig(AppConfig& cfg) {
             long v = parseNohangMem(value);
             if (v > 0) {
                 cfg.mem.available_warn_kib = v;
-                cfg.mem.available_warn_exit_kib = v;
+                cfg.mem.available_warn_exit_kib = v * 6 / 5;
             }
         } else if (key == "soft_threshold_min_mem") {
             long v = parseNohangMem(value);
-            if (v > 0)
+            if (v > 0) {
                 cfg.mem.available_crit_kib = v;
+                cfg.mem.available_crit_exit_kib = v * 6 / 5;
+            }
         } else if (key == "hard_threshold_min_mem") {
             long v = parseNohangMem(value);
             if (v > 0)

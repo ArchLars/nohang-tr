@@ -9,9 +9,9 @@ struct AppConfig {
             long window_us = 0;
         };
         double avg10_warn = 0.5;
-        double avg10_warn_exit = 0.5;
+        double avg10_warn_exit = 0.4; // 20% below warn
         double avg10_crit = 1.0;
-        double avg10_crit_exit = 1.0;
+        double avg10_crit_exit = 0.8; // 20% below crit
         struct {
             std::optional<Trigger> some;
             std::optional<Trigger> full;
@@ -20,9 +20,9 @@ struct AppConfig {
 
     struct {
         long available_warn_kib = 512 * 1024;
-        long available_warn_exit_kib = 512 * 1024;
+        long available_warn_exit_kib = 512 * 1024 * 6 / 5; // 20% above warn
         long available_crit_kib = 256 * 1024;
-        long available_crit_exit_kib = 256 * 1024;
+        long available_crit_exit_kib = 256 * 1024 * 6 / 5; // 20% above crit
     } mem;
 
     struct {
