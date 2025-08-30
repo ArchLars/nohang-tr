@@ -4,9 +4,15 @@
 #include <QFile>
 #include <QIcon>
 #include <QMenu>
+#include <QProcessEnvironment>
 #include <algorithm>
-#include <vector>
 #include <cmath>
+#include <vector>
+#ifdef HAVE_AYATANA_APPINDICATOR3
+#undef signals
+#include <gtk/gtk.h>
+#include <libayatana-appindicator/app-indicator.h>
+#endif
 
 Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
            const QString &configPath)
@@ -34,9 +40,46 @@ Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
     probe_->enableTriggers(triggers);
 }
 
+bool Tray::shouldUseAppIndicator() {
+#ifdef HAVE_AYATANA_APPINDICATOR3
+  const QString desktop = qEnvironmentVariable("XDG_CURRENT_DESKTOP");
+  return desktop.contains("GNOME", Qt::CaseInsensitive);
+#else
+  return false;
+#endif
+}
+
 void Tray::show() {
   icon_.setIcon(QIcon(cfg_.palette.black)); // initial
+#ifdef HAVE_AYATANA_APPINDICATOR3
+  if (shouldUseAppIndicator()) {
+    if (!indicator_) {
+      int argc = 0;
+      char **argv = nullptr;
+      if (gtk_init_check(&argc, &argv)) { // GCOVR_EXCL_START
+        indicator_ = app_indicator_new(
+            "nohang-tr", cfg_.palette.black.toUtf8().constData(),
+            APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
+        app_indicator_set_status(indicator_, APP_INDICATOR_STATUS_ACTIVE);
+        GtkWidget *menu = gtk_menu_new();
+        GtkWidget *quit = gtk_menu_item_new_with_label("Quit");
+        g_signal_connect(quit, "activate",
+                         G_CALLBACK(+[](GtkMenuItem *, gpointer) {
+                           QCoreApplication::quit();
+                         }),
+                         nullptr);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit);
+        gtk_widget_show_all(menu);
+        app_indicator_set_menu(indicator_, GTK_MENU(menu));
+        menuIndicator_ = menu;
+      } // GCOVR_EXCL_STOP
+    }
+  } else {
+    icon_.setVisible(true);
+  }
+#else
   icon_.setVisible(true);
+#endif
   timer_.start();
 }
 
@@ -70,7 +113,8 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg,
     QChar empty = QChar(0x2591); // '░'
     QString filledStr(filled, full);
     QString emptyStr(10 - filled, empty);
-    return QString("<span style='color:%1'>%2</span><span style='color:gray'>%3</span>")
+    return QString("<span style='color:%1'>%2</span><span "
+                   "style='color:gray'>%3</span>")
         .arg(colorFor(state))
         .arg(filledStr)
         .arg(emptyStr);
@@ -152,17 +196,16 @@ QString Tray::buildTooltip(const ProbeSample &s, const AppConfig &cfg,
   return tip;
 }
 
-Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg,
-                         State prev, std::optional<double> prevSomeAvg10) {
+Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg, State prev,
+                         std::optional<double> prevSomeAvg10) {
   auto rank = [](State st) { return static_cast<int>(st); };
   const int p = rank(prev);
 
   const long memCritThr = (p >= rank(State::Red))
                               ? cfg.mem.available_crit_exit_kib
                               : cfg.mem.available_crit_kib;
-  const long swapCritThr = (p >= rank(State::Red))
-                              ? cfg.swap.free_crit_exit_kib
-                              : cfg.swap.free_crit_kib;
+  const long swapCritThr = (p >= rank(State::Red)) ? cfg.swap.free_crit_exit_kib
+                                                   : cfg.swap.free_crit_kib;
   const double psiCritThr =
       (p >= rank(State::Red)) ? cfg.psi.avg10_crit_exit : cfg.psi.avg10_crit;
   if ((s.mem_available_kib && *s.mem_available_kib <= memCritThr) ||
@@ -187,9 +230,8 @@ Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg,
     return State::Yellow;
 
   if (prevSomeAvg10) {
-    double rate =
-        (s.some.avg10 - *prevSomeAvg10) /
-        (static_cast<double>(cfg.sample_interval_ms) / 1000.0);
+    double rate = (s.some.avg10 - *prevSomeAvg10) /
+                  (static_cast<double>(cfg.sample_interval_ms) / 1000.0);
     if (rate >= cfg.psi.avg10_deriv_warn)
       return State::Yellow;
   }
@@ -229,8 +271,10 @@ void Tray::refresh() {
         double curVal = static_cast<double>(*s.mem_available_kib);
         if (diffPct(oldVal, curVal) > 0.05)
           updateTip = true;
-        if (crosses(oldVal, curVal, static_cast<double>(cfg_.mem.available_warn_kib)) ||
-            crosses(oldVal, curVal, static_cast<double>(cfg_.mem.available_crit_kib)))
+        if (crosses(oldVal, curVal,
+                    static_cast<double>(cfg_.mem.available_warn_kib)) ||
+            crosses(oldVal, curVal,
+                    static_cast<double>(cfg_.mem.available_crit_kib)))
           updateTip = true;
       }
     }
@@ -259,18 +303,27 @@ void Tray::refresh() {
   icon_.setToolTip(tooltipCache_);
   state_ = nextState;
   prevSomeAvg10_ = s.some.avg10;
+  QString iconPath = cfg_.palette.black;
   switch (state_) {
   case State::Green:
-    icon_.setIcon(QIcon(cfg_.palette.green));
+    iconPath = cfg_.palette.green;
     break;
   case State::Yellow:
-    icon_.setIcon(QIcon(cfg_.palette.yellow));
+    iconPath = cfg_.palette.yellow;
     break;
   case State::Orange:
-    icon_.setIcon(QIcon(cfg_.palette.orange));
+    iconPath = cfg_.palette.orange;
     break;
   case State::Red:
-    icon_.setIcon(QIcon(cfg_.palette.red));
+    iconPath = cfg_.palette.red;
     break;
   }
+  icon_.setIcon(QIcon(iconPath));
+#ifdef HAVE_AYATANA_APPINDICATOR3
+  if (indicator_) {
+    app_indicator_set_title(indicator_, tooltipCache_.toUtf8().constData());
+    app_indicator_set_icon_full(indicator_, iconPath.toUtf8().constData(),
+                                tooltipCache_.toUtf8().constData());
+  }
+#endif
 }
