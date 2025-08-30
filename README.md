@@ -5,7 +5,7 @@ A DE-agnostic system tray for `nohang`, showing live memory pressure and when ac
 ## Dependencies
 
 - Linux with PSI (`/proc/pressure`) available
-- `nohang` installed and running (optional for dev)
+- `nohang` installed
 - Qt 6 Widgets, CMake, Ninja
 - libayatana-appindicator3 (for GNOME compatibility)
 - Catch2 for tests
