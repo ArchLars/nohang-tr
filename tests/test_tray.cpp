@@ -47,7 +47,7 @@ TEST_CASE("buildTooltip formats values") {
     REQUIRE(tooltip.find("MemAvailable: 1.2 MiB") != std::string::npos);
     REQUIRE(tooltip.find("warn 512.0 MiB") != std::string::npos);
     REQUIRE(tooltip.find("crit 256.0 MiB") != std::string::npos);
-    REQUIRE(tooltip.find("PSI some avg10: 0.50") != std::string::npos);
+    REQUIRE(tooltip.find("PSI some avg10: 0.50 (warn 0.50, crit 1.00)") != std::string::npos);
     REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
 }
 

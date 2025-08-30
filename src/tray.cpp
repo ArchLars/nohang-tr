@@ -58,19 +58,10 @@ QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
         tip += QStringLiteral("MemAvailable: n/a\n");
     }
 
-    tip += QString("PSI some avg10: %1\n").arg(s.some.avg10, 0, 'f', 2);
-    auto addPsi = [&](const char* label, double thr) {
-        double ratio = s.some.avg10 / thr;
-        ratio = std::clamp(ratio, 0.0, 1.0);
-        double pct = ratio * 100.0;
-        tip += QString(" %1 %2 [%3] %4%\n")
-            .arg(label)
-            .arg(thr, 0, 'f', 2)
-            .arg(makeBar(ratio))
-            .arg(pct, 0, 'f', 0);
-    };
-    addPsi("warn", cfg.psi.avg10_warn);
-    addPsi("crit", cfg.psi.avg10_crit);
+    tip += QString("PSI some avg10: %1 (warn %2, crit %3)\n")
+               .arg(s.some.avg10, 0, 'f', 2)
+               .arg(cfg.psi.avg10_warn, 0, 'f', 2)
+               .arg(cfg.psi.avg10_crit, 0, 'f', 2);
 
     tip += QString("PSI full avg10: %1\n").arg(s.full.avg10, 0, 'f', 2);
 
