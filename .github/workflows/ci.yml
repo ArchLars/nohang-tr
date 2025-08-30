@@ -31,10 +31,13 @@ jobs:
           sudo chown -R $USER:$USER /var/cache/apt/archives /var/lib/apt/lists
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
 
       - name: Build
         run: cmake --build build -- -v
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build/tests --output-on-failure
+
+      - name: Coverage
+        run: gcovr -r . --exclude build -e src/main.cpp --fail-under-line 70
