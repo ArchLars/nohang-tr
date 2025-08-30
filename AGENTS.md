@@ -10,7 +10,7 @@ Coding rules:
 - Single responsibility. `system_probe` has no Qt types. `tray` has no I/O to `/proc`.
 - TDD. Add a failing test, make it pass, refactor.
 - Public headers documented. Keep compile green in CI.
-- Ensuring completeness and correctness: When writing code, check relevant documentation by unpacking `manpages` tarballs with `zstd`. 
+- Ensuring completeness and correctness: When writing code, check relevant documentation by unpacking tarballs from the `manpages` package with `zstd`. Fallback is to get any individual one online.
 
 Prompts the agent should accept:
 - “Add a function in system_probe to parse PSI lines into struct fields. Write tests.”
