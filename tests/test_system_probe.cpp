@@ -1,5 +1,19 @@
 #include <catch2/catch_all.hpp>
+#include <sstream>
 #include "system_probe.h"
+
+TEST_CASE("parse MemAvailable returns value") {
+    std::istringstream ss("MemTotal: 1 kB\nMemAvailable: 123 kB\n");
+    auto v = parseMemAvailable(ss);
+    REQUIRE(v);
+    CHECK(*v == 123);
+}
+
+TEST_CASE("parse MemAvailable missing returns nullopt") {
+    std::istringstream ss("MemTotal: 1 kB\n");
+    auto v = parseMemAvailable(ss);
+    REQUIRE_FALSE(v);
+}
 
 TEST_CASE("parse PSI memory some line") {
     std::string line = "some avg10=1.23 avg60=4.56 avg300=7.89 total=789";
@@ -33,7 +47,8 @@ TEST_CASE("sample provides non-negative values") {
     auto sOpt = probe.sample();
     if (sOpt) {
         const auto& s = *sOpt;
-        REQUIRE(s.mem_available_kib >= 0);
+        if (s.mem_available_kib)
+            REQUIRE(*s.mem_available_kib >= 0);
         REQUIRE(s.some.avg10 >= 0.0);
         REQUIRE(s.some.avg60 >= 0.0);
         REQUIRE(s.some.avg300 >= 0.0);

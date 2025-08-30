@@ -25,14 +25,19 @@ static long parseLong(const std::string& line, const char* key) {
     return v;
 }
 
-long SystemProbe::readMemAvailableKiB() {
-    std::ifstream f("/proc/meminfo");
+std::optional<long> parseMemAvailable(std::istream& in) {
     std::string k, unit;
     long v = 0;
-    while (f >> k >> v >> unit) {
+    while (in >> k >> v >> unit) {
         if (k == "MemAvailable:") return v;
     }
-    return 0;
+    return std::nullopt;
+}
+
+std::optional<long> SystemProbe::readMemAvailableKiB() {
+    std::ifstream f("/proc/meminfo");
+    if (!f) return std::nullopt;
+    return parseMemAvailable(f);
 }
 
 std::optional<std::pair<SystemProbe::PsiType, PsiValues>> SystemProbe::parsePsiMemoryLine(const std::string& line) {
