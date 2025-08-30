@@ -22,6 +22,14 @@ TEST_CASE("default config values load") {
     REQUIRE(cfg.mem.available_warn_kib > 0);
 }
 
+TEST_CASE("default exit thresholds derive from entry thresholds") {
+    AppConfig cfg;
+    CHECK(cfg.mem.available_warn_exit_kib == cfg.mem.available_warn_kib * 6 / 5);
+    CHECK(cfg.mem.available_crit_exit_kib == cfg.mem.available_crit_kib * 6 / 5);
+    CHECK(cfg.psi.avg10_warn_exit == Catch::Approx(cfg.psi.avg10_warn * 0.8));
+    CHECK(cfg.psi.avg10_crit_exit == Catch::Approx(cfg.psi.avg10_crit * 0.8));
+}
+
 TEST_CASE("load values from example config") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
@@ -104,11 +112,11 @@ TEST_CASE("load thresholds from nohang config") {
     REQUIRE(cfg.load(appConf.fileName()));
 
     CHECK(cfg.mem.available_warn_kib == 512 * 1024);
-    CHECK(cfg.mem.available_warn_exit_kib == 512 * 1024);
+    CHECK(cfg.mem.available_warn_exit_kib == 512 * 1024 * 6 / 5);
     CHECK(cfg.mem.available_crit_kib == 256 * 1024);
     CHECK(cfg.mem.available_crit_exit_kib == 128 * 1024);
     CHECK(cfg.psi.avg10_warn == Catch::Approx(0.10));
-    CHECK(cfg.psi.avg10_warn_exit == Catch::Approx(0.10));
+    CHECK(cfg.psi.avg10_warn_exit == Catch::Approx(0.08));
     CHECK(cfg.psi.avg10_crit == Catch::Approx(0.20));
     CHECK(cfg.psi.avg10_crit_exit == Catch::Approx(0.30));
 
