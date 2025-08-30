@@ -20,7 +20,12 @@ struct AppConfig {
     } palette;
 
     int sample_interval_ms = 2000;
-
-    // stub parser for now
-    bool load(const QString& /*path*/) { return true; }
+    /**
+     * Load configuration values from a TOML file.
+     *
+     * The file is parsed for keys used by AppConfig. Missing keys
+     * keep their default values. Returns false if the file cannot be
+     * read.
+     */
+    bool load(const QString& path);
 };
