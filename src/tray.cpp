@@ -49,7 +49,9 @@ QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
     auto makeBar = [](double ratio) {
         ratio = std::clamp(ratio, 0.0, 1.0);
         int filled = static_cast<int>(ratio * 10);
-        return QString("%1%2").arg(QString(filled, '#'), QString(10 - filled, '-'));
+        QChar full = QChar(0x2588); // '█'
+        QChar empty = QChar(0x2591); // '░'
+        return QString("%1%2").arg(QString(filled, full), QString(10 - filled, empty));
     };
 
     QString tip;

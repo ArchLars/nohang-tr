@@ -59,11 +59,11 @@ TEST_CASE("buildTooltip fills bars as memory becomes scarce") {
 
     s.mem_available_kib = cfg.mem.available_warn_kib * 2;
     auto tip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tip.find("warn 512.0 MiB [----------] 0%") != std::string::npos);
+    REQUIRE(tip.find("warn 512.0 MiB [░░░░░░░░░░] 0%") != std::string::npos);
 
     s.mem_available_kib = 0;
     tip = Tray::buildTooltip(s, cfg).toStdString();
-    REQUIRE(tip.find("warn 512.0 MiB [##########] 100%") != std::string::npos);
+    REQUIRE(tip.find("warn 512.0 MiB [██████████] 100%") != std::string::npos);
 }
 
 TEST_CASE("decide returns expected state") {
