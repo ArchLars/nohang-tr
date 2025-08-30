@@ -10,7 +10,7 @@ Coding rules:
 - Single responsibility. `system_probe` has no Qt types. `tray` has no I/O to `/proc`.
 - TDD. Add a failing test, make it pass, refactor.
 - Public headers documented. Keep compile green in CI.
-- Reference `manpages` tarballs with `zstd` and `man-db` documentation. Reference `nohang` documentation under `/usr/share/doc/nohang/` 
+- Ensuring correct and broad implementation: When adding relevant features, unpack `manpages` tarballs with `zstd`. You can also use `man-db`. Also reference `nohang` documentation under `/usr/share/doc/nohang/` when implementing integration with it.
 
 Prompts the agent should accept:
 - “Add a function in system_probe to parse PSI lines into struct fields. Write tests.”
