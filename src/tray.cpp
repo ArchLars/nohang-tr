@@ -23,24 +23,26 @@ void Tray::show() {
 }
 
 QString Tray::buildTooltip(const ProbeSample& s) {
-    return QString("MemAvailable: %1 KiB\nPSI mem avg10: %2\nPSI mem avg60: %3")
+    return QString("MemAvailable: %1 KiB\nPSI some avg10: %2\nPSI some avg60: %3")
         .arg(s.mem_available_kib)
-        .arg(s.psi_mem_avg10, 0, 'f', 2)
-        .arg(s.psi_mem_avg60, 0, 'f', 2);
+        .arg(s.some.avg10, 0, 'f', 2)
+        .arg(s.some.avg60, 0, 'f', 2);
 }
 
 Tray::State Tray::decide(const ProbeSample& s, const AppConfig& cfg) {
-    if (s.mem_available_kib <= cfg.mem.available_crit_kib || s.psi_mem_avg10 >= cfg.psi.avg10_crit)
+    if (s.mem_available_kib <= cfg.mem.available_crit_kib || s.some.avg10 >= cfg.psi.avg10_crit)
         return State::Red;
     if (s.mem_available_kib <= cfg.mem.available_warn_kib)
         return State::Orange;
-    if (s.psi_mem_avg10 >= cfg.psi.avg10_warn)
+    if (s.some.avg10 >= cfg.psi.avg10_warn)
         return State::Yellow;
     return State::Green;
 }
 
 void Tray::refresh() {
-    auto s = probe_->sample();
+    auto sOpt = probe_->sample();
+    if (!sOpt) return;
+    const auto& s = *sOpt;
     icon_.setToolTip(buildTooltip(s));
     switch (decide(s, cfg_)) {
         case State::Green:  icon_.setIcon(QIcon(cfg_.palette.green));  break;
