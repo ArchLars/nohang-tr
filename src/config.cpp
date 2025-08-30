@@ -5,6 +5,109 @@
 #include <cstdlib>
 #include <filesystem>
 
+namespace {
+
+long readMemTotalKiB() {
+    QFile f("/proc/meminfo");
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return 0;
+    QTextStream ts(&f);
+    while (!ts.atEnd()) {
+        const QString line = ts.readLine();
+        if (line.startsWith("MemTotal:")) {
+            auto parts = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+            if (parts.size() >= 2)
+                return parts[1].toLong();
+        }
+    }
+    return 0;
+}
+
+long parseNohangMem(const QString& value) {
+    auto parts = value.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    if (parts.isEmpty())
+        return 0;
+    bool ok = false;
+    double num = parts[0].toDouble(&ok);
+    if (!ok)
+        return 0;
+    QString unit = parts.size() > 1 ? parts[1].toLower() : "m";
+    if (unit.startsWith('%')) {
+        long total = readMemTotalKiB();
+        if (total <= 0)
+            return 0;
+        return static_cast<long>(num / 100.0 * total);
+    }
+    // default unit megabytes
+    return static_cast<long>(num * 1024);
+}
+
+void loadNohangConfig(AppConfig& cfg) {
+    QString path;
+    const char* xdg = std::getenv("XDG_CONFIG_HOME");
+    if (xdg && *xdg) {
+        path = QString::fromLocal8Bit(xdg) + "/nohang/nohang.conf";
+    } else {
+        const char* home = std::getenv("HOME");
+        if (home && *home)
+            path = QString::fromLocal8Bit(home) + "/.config/nohang/nohang.conf";
+    }
+    if (path.isEmpty() || !QFile::exists(path))
+        path = "/etc/nohang/nohang.conf";
+
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+
+    QTextStream ts(&f);
+    while (!ts.atEnd()) {
+        QString line = ts.readLine().trimmed();
+        if (line.isEmpty() || line.startsWith('#') || line.startsWith('@'))
+            continue;
+        int eq = line.indexOf('=');
+        if (eq == -1)
+            continue;
+        QString key = line.left(eq).trimmed();
+        QString value = line.mid(eq + 1).trimmed();
+        int comment = value.indexOf('#');
+        if (comment != -1)
+            value = value.left(comment).trimmed();
+
+        bool ok = false;
+        if (key == "warning_threshold_max_psi") {
+            double v = value.toDouble(&ok);
+            if (ok) {
+                cfg.psi.avg10_warn = v / 100.0;
+                cfg.psi.avg10_warn_exit = cfg.psi.avg10_warn;
+            }
+        } else if (key == "soft_threshold_max_psi") {
+            double v = value.toDouble(&ok);
+            if (ok)
+                cfg.psi.avg10_crit = v / 100.0;
+        } else if (key == "hard_threshold_max_psi") {
+            double v = value.toDouble(&ok);
+            if (ok)
+                cfg.psi.avg10_crit_exit = v / 100.0;
+        } else if (key == "warning_threshold_min_mem") {
+            long v = parseNohangMem(value);
+            if (v > 0) {
+                cfg.mem.available_warn_kib = v;
+                cfg.mem.available_warn_exit_kib = v;
+            }
+        } else if (key == "soft_threshold_min_mem") {
+            long v = parseNohangMem(value);
+            if (v > 0)
+                cfg.mem.available_crit_kib = v;
+        } else if (key == "hard_threshold_min_mem") {
+            long v = parseNohangMem(value);
+            if (v > 0)
+                cfg.mem.available_crit_exit_kib = v;
+        }
+    }
+}
+
+} // namespace
+
 bool AppConfig::load(const QString& path) {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -85,6 +188,7 @@ bool AppConfig::load(const QString& path) {
                 sample_interval_ms = v;
         }
     }
+    loadNohangConfig(*this);
     return true;
 }
 
