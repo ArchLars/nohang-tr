@@ -1,11 +1,23 @@
 #include "tray.h"
 #include <QAction>
 #include <QCoreApplication>
+#include <QFile>
 #include <QIcon>
 #include <QMenu>
 #include <algorithm>
 #include <cmath>
 #include <vector>
+
+namespace {
+QIcon loadIcon(const QString &name) {
+  if (QFile::exists(name))
+    return QIcon(name);
+  QIcon icon = QIcon::fromTheme(name);
+  if (icon.isNull())
+    icon = QIcon(name);
+  return icon;
+}
+} // namespace
 
 Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
            const QString &configPath)
@@ -34,7 +46,7 @@ Tray::Tray(QObject *parent, std::unique_ptr<SystemProbe> probe,
 }
 
 void Tray::show() {
-  icon_.setIcon(QIcon(cfg_.palette.black)); // initial
+  icon_.setIcon(loadIcon(cfg_.palette.black)); // initial
   icon_.setVisible(true);
   timer_.start();
 }
@@ -186,7 +198,7 @@ Tray::State Tray::decide(const ProbeSample &s, const AppConfig &cfg, State prev,
 void Tray::refresh() {
   auto sOpt = probe_->sample();
   if (!sOpt) {
-    icon_.setIcon(QIcon(cfg_.palette.black));
+    icon_.setIcon(loadIcon(cfg_.palette.black));
     return;
   }
   const auto &s = *sOpt;
@@ -257,5 +269,5 @@ void Tray::refresh() {
     iconPath = cfg_.palette.red;
     break;
   }
-  icon_.setIcon(QIcon(iconPath));
+  icon_.setIcon(loadIcon(iconPath));
 }

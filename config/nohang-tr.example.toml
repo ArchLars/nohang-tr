@@ -7,11 +7,11 @@ available_warn_kib = 524288     # 512 MiB
 available_crit_kib = 262144     # 256 MiB
 
 [ui.palette]
-green = "res/icons/shield-green.svg"
-yellow = "res/icons/shield-yellow.svg"
-orange = "res/icons/shield-orange.svg"
-red = "res/icons/shield-red.svg"
-black = "res/icons/shield-black.svg"
+green = "shield-green"
+yellow = "shield-yellow"
+orange = "shield-orange"
+red = "shield-red"
+black = "shield-black"
 
 [sample]
 interval_ms = 2000
