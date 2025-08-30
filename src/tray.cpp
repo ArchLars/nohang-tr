@@ -25,6 +25,14 @@ void Tray::show() {
 }
 
 QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
+    auto formatKib = [](long kib) {
+        double mib = kib / 1024.0;
+        if (mib >= 1024.0) {
+            double gib = mib / 1024.0;
+            return QString("%1 GiB").arg(gib, 0, 'f', 1);
+        }
+        return QString("%1 MiB").arg(mib, 0, 'f', 1);
+    };
     auto makeBar = [](double ratio) {
         ratio = std::clamp(ratio, 0.0, 1.0);
         int filled = static_cast<int>(ratio * 10);
@@ -33,13 +41,14 @@ QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
 
     QString tip;
     if (s.mem_available_kib) {
-        tip += QString("MemAvailable: %1 KiB\n").arg(*s.mem_available_kib);
+        tip += QString("MemAvailable: %1\n").arg(formatKib(*s.mem_available_kib));
         auto addMem = [&](const char* label, long thr) {
             double ratio = static_cast<double>(*s.mem_available_kib) / thr;
+            ratio = std::clamp(ratio, 0.0, 1.0);
             double pct = ratio * 100.0;
-            tip += QString(" %1 %2 KiB [%3] %4%\n")
+            tip += QString(" %1 %2 [%3] %4%\n")
                 .arg(label)
-                .arg(thr)
+                .arg(formatKib(thr))
                 .arg(makeBar(ratio))
                 .arg(pct, 0, 'f', 0);
         };
@@ -52,6 +61,7 @@ QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
     tip += QString("PSI some avg10: %1\n").arg(s.some.avg10, 0, 'f', 2);
     auto addPsi = [&](const char* label, double thr) {
         double ratio = s.some.avg10 / thr;
+        ratio = std::clamp(ratio, 0.0, 1.0);
         double pct = ratio * 100.0;
         tip += QString(" %1 %2 [%3] %4%\n")
             .arg(label)
