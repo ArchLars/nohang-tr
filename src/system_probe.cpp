@@ -58,6 +58,24 @@ std::optional<long> parseSwapFree(std::istream& in) {
     return std::nullopt;
 }
 
+std::optional<long> parseMemFree(std::istream& in) {
+    std::string k, unit;
+    long v = 0;
+    while (in >> k >> v >> unit) {
+        if (k == "MemFree:") return v;
+    }
+    return std::nullopt;
+}
+
+std::optional<long> parseCached(std::istream& in) {
+    std::string k, unit;
+    long v = 0;
+    while (in >> k >> v >> unit) {
+        if (k == "Cached:") return v;
+    }
+    return std::nullopt;
+}
+
 SystemProbe::SystemProbe(std::string meminfoPath, std::string psiPath)
     : meminfoPath_(std::move(meminfoPath)), psiPath_(std::move(psiPath)) {
     meminfoFd_ = open(meminfoPath_.c_str(), O_RDONLY | O_CLOEXEC);
@@ -180,7 +198,13 @@ std::optional<ProbeSample> SystemProbe::sample() const {
         s.mem_total_kib = parseMemTotal(ss);
         ss.clear();
         ss.seekg(0);
+        s.mem_free_kib = parseMemFree(ss);
+        ss.clear();
+        ss.seekg(0);
         s.swap_free_kib = parseSwapFree(ss);
+        ss.clear();
+        ss.seekg(0);
+        s.cached_kib = parseCached(ss);
     }
     auto psi = readPsiMemory();
     if (!psi) return std::nullopt;

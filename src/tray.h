@@ -40,7 +40,7 @@ public:
     /**
      * @brief Build tooltip text from a probe sample and configuration.
      */
-    static QString buildTooltip(const ProbeSample& s, const AppConfig& cfg);
+    static QString buildTooltip(const ProbeSample& s, const AppConfig& cfg, State state);
 
     /**
      * @brief Decide next state based on a sample and previous state.

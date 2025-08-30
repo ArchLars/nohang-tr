@@ -27,6 +27,20 @@ std::optional<long> parseMemTotal(std::istream& in);
 std::optional<long> parseSwapFree(std::istream& in);
 
 /**
+ * Parse the MemFree value in KiB from a meminfo-like stream.
+ * @param in Input stream providing lines formatted as in /proc/meminfo.
+ * @return Parsed value in KiB or std::nullopt if the key is absent.
+ */
+std::optional<long> parseMemFree(std::istream& in);
+
+/**
+ * Parse the Cached value in KiB from a meminfo-like stream.
+ * @param in Input stream providing lines formatted as in /proc/meminfo.
+ * @return Parsed value in KiB or std::nullopt if the key is absent.
+ */
+std::optional<long> parseCached(std::istream& in);
+
+/**
  * @brief Pressure stall information values.
  */
 struct PsiValues {
@@ -42,7 +56,9 @@ struct PsiValues {
 struct ProbeSample {
     std::optional<long> mem_available_kib; ///< MemAvailable in KiB if readable.
     std::optional<long> mem_total_kib;     ///< MemTotal in KiB if readable.
+    std::optional<long> mem_free_kib;      ///< MemFree in KiB if readable.
     std::optional<long> swap_free_kib;     ///< SwapFree in KiB if readable.
+    std::optional<long> cached_kib;        ///< Cached in KiB if readable.
     PsiValues some;                       ///< PSI "some" memory values.
     PsiValues full;                       ///< PSI "full" memory values.
 };

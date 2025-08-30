@@ -61,16 +61,20 @@ TEST_CASE("buildTooltip formats values") {
   ProbeSample s;
   s.mem_available_kib = 1234;
   s.mem_total_kib = 2 * 1024 * 1024;
+  s.mem_free_kib = 1024;
   s.swap_free_kib = 1234;
+  s.cached_kib = 2048;
   s.some.avg10 = 0.5;
   s.some.avg60 = 1.5;
   s.full.avg10 = 1.5;
   AppConfig cfg;
-  auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
-  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB / 2.0 GiB") != std::string::npos);
+  auto tooltip =
+      Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
+  REQUIRE(tooltip.find("MemAvailable: 1.2 MiB / 2.0 GiB") !=
+          std::string::npos);
+  REQUIRE(tooltip.find("MemFree: 1.0 MiB") != std::string::npos);
   REQUIRE(tooltip.find("SwapFree: 1.2 MiB") != std::string::npos);
-  REQUIRE(tooltip.find("warn 512.0 MiB") != std::string::npos);
-  REQUIRE(tooltip.find("crit 256.0 MiB") != std::string::npos);
+  REQUIRE(tooltip.find("Cached: 2.0 MiB") != std::string::npos);
   REQUIRE(tooltip.find("PSI some avg10: 0.50 (warn 0.50, crit 1.00)") !=
           std::string::npos);
   REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
@@ -79,25 +83,32 @@ TEST_CASE("buildTooltip formats values") {
 TEST_CASE("buildTooltip indicates config source") {
   ProbeSample s; // defaults ok
   AppConfig cfg;
-  auto tip = Tray::buildTooltip(s, cfg).toStdString();
+  auto tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
   REQUIRE(tip.find("Config: default") != std::string::npos);
 
   cfg.source = AppConfig::Source::Nohang;
-  tip = Tray::buildTooltip(s, cfg).toStdString();
+  tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
   REQUIRE(tip.find("Config: nohang") != std::string::npos);
 }
 
-TEST_CASE("buildTooltip fills bars as memory becomes scarce") {
+TEST_CASE("buildTooltip uses lowest memory indicator") {
   AppConfig cfg;
   ProbeSample s;
-
   s.mem_available_kib = cfg.mem.available_warn_kib * 2;
-  auto tip = Tray::buildTooltip(s, cfg).toStdString();
-  REQUIRE(tip.find("warn 512.0 MiB [░░░░░░░░░░] 0%") != std::string::npos);
+  s.mem_free_kib = cfg.mem.available_warn_kib * 2;
+  s.swap_free_kib = cfg.swap.free_warn_kib * 2;
+  s.cached_kib = cfg.mem.available_warn_kib * 2;
 
-  s.mem_available_kib = 0;
-  tip = Tray::buildTooltip(s, cfg).toStdString();
-  REQUIRE(tip.find("warn 512.0 MiB [██████████] 100%") != std::string::npos);
+  auto tip =
+      Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
+  REQUIRE(tip.find("Pressure:") != std::string::npos);
+  REQUIRE(tip.find("0%") != std::string::npos);
+  REQUIRE(tip.find("style='color:green'") != std::string::npos);
+
+  s.mem_free_kib = 0; // forces bar to 100%
+  tip = Tray::buildTooltip(s, cfg, Tray::State::Red).toStdString();
+  REQUIRE(tip.find("100%") != std::string::npos);
+  REQUIRE(tip.find("style='color:red'>██████████") != std::string::npos);
 }
 
 TEST_CASE("decide returns expected state") {
@@ -282,8 +293,10 @@ TEST_CASE("refresh sets icon color for each state") {
     s.some.avg10 = cfg.psi.avg10_warn - 0.1;
     Tray tray(nullptr, std::make_unique<StubProbe>(s));
     applyPalette(tray);
+    auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+    CHECK(tray.icon_.toolTip() ==
+          Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("yellow psi") {
@@ -292,8 +305,10 @@ TEST_CASE("refresh sets icon color for each state") {
     s.some.avg10 = cfg.psi.avg10_warn + 0.1;
     Tray tray(nullptr, std::make_unique<StubProbe>(s));
     applyPalette(tray);
+    auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+    CHECK(tray.icon_.toolTip() ==
+          Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("yellow mem") {
@@ -302,8 +317,10 @@ TEST_CASE("refresh sets icon color for each state") {
     s.some.avg10 = cfg.psi.avg10_warn - 0.1;
     Tray tray(nullptr, std::make_unique<StubProbe>(s));
     applyPalette(tray);
+    auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+    CHECK(tray.icon_.toolTip() ==
+          Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("orange") {
@@ -312,8 +329,10 @@ TEST_CASE("refresh sets icon color for each state") {
     s.some.avg10 = 0.0;
     Tray tray(nullptr, std::make_unique<StubProbe>(s));
     applyPalette(tray);
+    auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+    CHECK(tray.icon_.toolTip() ==
+          Tray::buildTooltip(s, tray.cfg_, state));
   }
 
   SECTION("red") {
@@ -321,8 +340,10 @@ TEST_CASE("refresh sets icon color for each state") {
     s.mem_available_kib = cfg.mem.available_crit_kib - 1;
     Tray tray(nullptr, std::make_unique<StubProbe>(s));
     applyPalette(tray);
+    auto state = Tray::decide(s, tray.cfg_, Tray::State::Green);
     tray.refresh();
-    CHECK(tray.icon_.toolTip() == Tray::buildTooltip(s, tray.cfg_));
+    CHECK(tray.icon_.toolTip() ==
+          Tray::buildTooltip(s, tray.cfg_, state));
   }
 }
 
