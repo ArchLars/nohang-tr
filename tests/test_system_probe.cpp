@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <unistd.h>
 #include "system_probe.h"
 
 TEST_CASE("parse MemAvailable returns value") {
@@ -268,4 +269,72 @@ TEST_CASE("sample logs incomplete PSI data") {
     std::cerr.rdbuf(old);
     REQUIRE_FALSE(s);
     CHECK(err.str().find("incomplete") != std::string::npos);
+}
+
+TEST_CASE("sample succeeds when meminfo missing") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_no_meminfo";
+    fs::create_directories(dir);
+    fs::path psi = dir / "pressure";
+    {
+        std::ofstream out(psi);
+        out << "some avg10=1 avg60=2 avg300=3 total=4\n";
+        out << "full avg10=5 avg60=6 avg300=7 total=8\n";
+    }
+    fs::path mem = dir / "missing";
+    SystemProbe probe(mem.string(), psi.string());
+    auto s = probe.sample();
+    REQUIRE(s);
+    CHECK_FALSE(s->mem_available_kib);
+    CHECK(s->some.total == 4);
+    CHECK(s->full.total == 8);
+}
+
+TEST_CASE("sample logs seek failure on psi file") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_seek_fail";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    {
+        std::ofstream out(mem);
+        out << "MemAvailable: 1 kB\n";
+    }
+    int fds[2];
+    REQUIRE(::pipe(fds) == 0);
+    ::close(fds[1]);
+    std::string psiPath = std::string("/proc/self/fd/") + std::to_string(fds[0]);
+    SystemProbe probe(mem.string(), psiPath);
+    std::ostringstream err;
+    auto* old = std::cerr.rdbuf(err.rdbuf());
+    auto s = probe.sample();
+    std::cerr.rdbuf(old);
+    ::close(fds[0]);
+    REQUIRE_FALSE(s);
+    CHECK(err.str().find("seek failed") != std::string::npos);
+}
+
+TEST_CASE("sample processes triggers when enabled") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_trig_sample";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    fs::path psi = dir / "pressure";
+    fs::path trig = dir / "trig";
+    {
+        std::ofstream out(mem);
+        out << "MemAvailable: 1 kB\n";
+    }
+    {
+        std::ofstream out(psi);
+        out << "some avg10=0 avg60=0 avg300=0 total=0\n";
+        out << "full avg10=0 avg60=0 avg300=0 total=0\n";
+    }
+    {
+        std::ofstream out(trig);
+    }
+    SystemProbe probe(mem.string(), psi.string());
+    SystemProbe::Trigger t{SystemProbe::PsiType::Some, 1, 1};
+    REQUIRE(probe.enableTriggers(trig.string(), {t}));
+    auto s = probe.sample();
+    REQUIRE(s);
 }
