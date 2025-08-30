@@ -12,28 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Prepare APT cache directories
-        run: |
-          sudo mkdir -p /var/cache/apt/archives /var/lib/apt/lists
-          sudo chown -R $USER:$USER /var/cache/apt/archives /var/lib/apt/lists
+      - name: Load APT package list into env
+        run: echo "APT_LIST=$(tr '\n' ' ' < apt-packages.txt)" >> $GITHUB_ENV
 
-      - name: Cache APT archives
-        uses: actions/cache@v4
+      - name: Cache and install APT packages
+        uses: awalsh128/cache-apt-pkgs-action@v1.5.3
         with:
-          path: |
-            /var/cache/apt/archives
-            /var/lib/apt/lists
-          key: ${{ runner.os }}-apt-${{ hashFiles('apt-packages.txt') }}
-
-      - name: Prepare APT cache and install deps
-        run: |
-          sudo apt-get update -y
-          xargs -a apt-packages.txt sudo apt-get -yq --download-only install
-          xargs -a apt-packages.txt sudo apt-get -yq install
-
-      - name: Fix APT cache permissions
-        run: |
-          sudo chown -R $USER:$USER /var/cache/apt/archives /var/lib/apt/lists
+          packages: ${{ env.APT_LIST }}
+          # bumping this when apt-packages.txt changes invalidates the cache
+          version: ${{ hashFiles('apt-packages.txt') }}
 
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
@@ -45,4 +32,4 @@ jobs:
         run: ctest --test-dir build/tests --output-on-failure
 
       - name: Coverage
-        run: gcovr -r . --exclude build -e src/main.cpp --fail-under-line 70
+        run: gcovr -r . --exclude build -e src/main.cpp --fail-under-line 95
