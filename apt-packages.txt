@@ -7,5 +7,7 @@ libglib2.0-dev
 libdbus-1-dev
 pkg-config
 catch2
+graphviz 
+doxygen
 gcovr
 nohang
