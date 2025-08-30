@@ -41,10 +41,12 @@ TEST_CASE("buildTooltip formats values") {
     s.mem_available_kib = 1234;
     s.some.avg10 = 0.5;
     s.some.avg60 = 1.5;
+    s.full.avg10 = 1.5;
     AppConfig cfg;
     auto tooltip = Tray::buildTooltip(s, cfg).toStdString();
     REQUIRE(tooltip.find("MemAvailable: 1234 KiB") != std::string::npos);
     REQUIRE(tooltip.find("PSI some avg10: 0.50") != std::string::npos);
+    REQUIRE(tooltip.find("PSI full avg10: 1.50") != std::string::npos);
     REQUIRE(tooltip.find("warn") != std::string::npos);
     REQUIRE(tooltip.find("crit") != std::string::npos);
 }

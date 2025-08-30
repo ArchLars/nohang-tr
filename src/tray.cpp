@@ -62,6 +62,8 @@ QString Tray::buildTooltip(const ProbeSample& s, const AppConfig& cfg) {
     addPsi("warn", cfg.psi.avg10_warn);
     addPsi("crit", cfg.psi.avg10_crit);
 
+    tip += QString("PSI full avg10: %1\n").arg(s.full.avg10, 0, 'f', 2);
+
     if (cfg.psi.trigger.some) {
         const auto& t = *cfg.psi.trigger.some;
         tip += QString(" trigger some: %1us/%2us\n").arg(t.stall_us).arg(t.window_us);
