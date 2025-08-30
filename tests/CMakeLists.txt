@@ -1,4 +1,3 @@
-enable_testing()
 find_package(Catch2 3 REQUIRED)
 add_executable(unit-test
     test_config.cpp
