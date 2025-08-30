@@ -66,6 +66,13 @@ public:
     bool enableTriggers(const std::string& path, const std::vector<Trigger>& triggers);
 
     /**
+     * @brief Enable PSI triggers using the probe's configured path.
+     * @param triggers Collection of trigger thresholds to register.
+     * @return True on success, false otherwise.
+     */
+    bool enableTriggers(const std::vector<Trigger>& triggers);
+
+    /**
      * @brief Obtain a single sample of current memory statistics.
      * @return ProbeSample with current readings or std::nullopt on failure.
      */

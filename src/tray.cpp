@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QCoreApplication>
 #include <algorithm>
+#include <vector>
 
 Tray::Tray(QObject* parent, std::unique_ptr<SystemProbe> probe, const QString& configPath)
     : QObject(parent), probe_(probe ? std::move(probe) : std::make_unique<SystemProbe>()) {
@@ -16,6 +17,18 @@ Tray::Tray(QObject* parent, std::unique_ptr<SystemProbe> probe, const QString& c
     icon_.setContextMenu(menu);
     timer_.setInterval(cfg_.sample_interval_ms);
     connect(&timer_, &QTimer::timeout, this, &Tray::refresh);
+
+    std::vector<SystemProbe::Trigger> triggers;
+    if (cfg_.psi.trigger.some) {
+        const auto& t = *cfg_.psi.trigger.some;
+        triggers.push_back({SystemProbe::PsiType::Some, t.stall_us, t.window_us});
+    }
+    if (cfg_.psi.trigger.full) {
+        const auto& t = *cfg_.psi.trigger.full;
+        triggers.push_back({SystemProbe::PsiType::Full, t.stall_us, t.window_us});
+    }
+    if (!triggers.empty())
+        probe_->enableTriggers(triggers);
 }
 
 void Tray::show() {

@@ -97,6 +97,10 @@ bool SystemProbe::enableTriggers(const std::string& path, const std::vector<Trig
     return true;
 }
 
+bool SystemProbe::enableTriggers(const std::vector<Trigger>& triggers) {
+    return enableTriggers(psiPath_, triggers);
+}
+
 std::optional<ProbeSample> SystemProbe::sample() const {
     if (triggerFd_ >= 0) {
         struct pollfd pfd { triggerFd_, POLLPRI, 0 };
