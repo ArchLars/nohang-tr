@@ -103,6 +103,19 @@ TEST_CASE("decide warns before reaching memory threshold") {
   REQUIRE(Tray::decide(s, cfg, Tray::State::Green) == Tray::State::Yellow);
 }
 
+TEST_CASE("decide preempts on rapid PSI increase") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_warn_exit_kib + 1;
+  s.some.avg10 = 0.4; // below warn threshold
+  // With previous avg10 0.1 and 2s interval, rate = 0.15 > 0.1 threshold
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green, 0.1) ==
+          Tray::State::Yellow);
+  s.some.avg10 = 0.15; // rate = 0.025 < threshold
+  REQUIRE(Tray::decide(s, cfg, Tray::State::Green, 0.1) ==
+          Tray::State::Green);
+}
+
 TEST_CASE("hysteresis prevents state flapping") {
   AppConfig cfg;
 

@@ -21,6 +21,7 @@ struct AppConfig {
         double avg10_warn_exit = 0.4; // 20% below warn
         double avg10_crit = 1.0;
         double avg10_crit_exit = 0.8; // 20% below crit
+        double avg10_deriv_warn = 0.1; ///< avg10 rise/sec triggering yellow
         struct {
             std::optional<Trigger> some;
             std::optional<Trigger> full;
