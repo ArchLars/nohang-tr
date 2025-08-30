@@ -29,7 +29,7 @@ struct AppConfig {
 
     struct {
         long available_warn_kib = 512 * 1024;
-        long available_warn_exit_kib = 512 * 1024 * 6 / 5; // 20% above warn
+        long available_warn_exit_kib = 512 * 1024 * 6 / 5; // 20% above warn, Yellow margin
         long available_crit_kib = 256 * 1024;
         long available_crit_exit_kib = 256 * 1024 * 6 / 5; // 20% above crit
     } mem;
