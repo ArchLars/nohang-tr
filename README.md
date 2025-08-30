@@ -38,10 +38,10 @@ file remains for compatibility with other tooling.
 
 This installs the `nohang-tr` binary, a `nohang-tr.desktop` entry, and the tray icon into standard system locations so the app shows up in your desktop menu.
 
-Fetch the latest changes and rebuild with:
+To remove the installed files run:
 
 ```bash
-./update.sh
+./uninstall.sh /usr/local
 ```
 
 
