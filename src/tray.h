@@ -11,11 +11,12 @@ public:
     explicit Tray(QObject* parent=nullptr);
     void show();
 
+    enum class State { Green, Yellow, Orange, Red };
+    static QString buildTooltip(const ProbeSample& s);
+    static State decide(const ProbeSample& s, const AppConfig& cfg);
+
 private:
     void refresh();
-    QString buildTooltip(const ProbeSample& s) const;
-    enum class State { Green, Yellow, Orange, Red };
-    State decide(const ProbeSample& s) const;
 
     QSystemTrayIcon icon_;
     QTimer timer_;

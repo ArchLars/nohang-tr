@@ -24,15 +24,21 @@ long SystemProbe::readMemAvailableKiB() {
     return 0;
 }
 
+std::optional<std::pair<double,double>> SystemProbe::parsePsiMemoryLine(const std::string& line) {
+    if (line.rfind("some", 0) == 0) {
+        double avg10 = parseAvgN(line, "avg10=");
+        double avg60 = parseAvgN(line, "avg60=");
+        return std::make_pair(avg10, avg60);
+    }
+    return std::nullopt;
+}
+
 std::optional<std::pair<double,double>> SystemProbe::readPsiMemoryAvg10Avg60() {
     std::ifstream f("/proc/pressure/memory");
     std::string line;
     while (std::getline(f, line)) {
-        if (line.rfind("some", 0) == 0) {
-            double avg10 = parseAvgN(line, "avg10=");
-            double avg60 = parseAvgN(line, "avg60=");
-            return std::make_pair(avg10, avg60);
-        }
+        auto parsed = parsePsiMemoryLine(line);
+        if (parsed) return parsed;
     }
     return std::nullopt;
 }
