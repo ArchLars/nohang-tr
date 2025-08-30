@@ -1,7 +1,15 @@
 #pragma once
+#include <istream>
 #include <optional>
 #include <string>
 #include <utility>
+
+/**
+ * Parse the MemAvailable value in KiB from a meminfo-like stream.
+ * @param in Input stream providing lines formatted as in /proc/meminfo.
+ * @return Parsed value in KiB or std::nullopt if the key is absent.
+ */
+std::optional<long> parseMemAvailable(std::istream& in);
 
 /**
  * Pressure stall information values.
@@ -14,7 +22,7 @@ struct PsiValues {
 };
 
 struct ProbeSample {
-    long mem_available_kib = 0;
+    std::optional<long> mem_available_kib;
     PsiValues some;
     PsiValues full;
 };
@@ -27,6 +35,6 @@ public:
     enum class PsiType { Some, Full };
     static std::optional<std::pair<PsiType, PsiValues>> parsePsiMemoryLine(const std::string& line);
 private:
-    static long readMemAvailableKiB();
+    static std::optional<long> readMemAvailableKiB();
     static std::optional<std::pair<PsiValues, PsiValues>> readPsiMemory();
 };

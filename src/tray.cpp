@@ -23,16 +23,19 @@ void Tray::show() {
 }
 
 QString Tray::buildTooltip(const ProbeSample& s) {
+    const QString memAvail = s.mem_available_kib ? QString::number(*s.mem_available_kib)
+                                                : QStringLiteral("n/a");
     return QString("MemAvailable: %1 KiB\nPSI some avg10: %2\nPSI some avg60: %3")
-        .arg(s.mem_available_kib)
+        .arg(memAvail)
         .arg(s.some.avg10, 0, 'f', 2)
         .arg(s.some.avg60, 0, 'f', 2);
 }
 
 Tray::State Tray::decide(const ProbeSample& s, const AppConfig& cfg) {
-    if (s.mem_available_kib <= cfg.mem.available_crit_kib || s.some.avg10 >= cfg.psi.avg10_crit)
+    if ((s.mem_available_kib && *s.mem_available_kib <= cfg.mem.available_crit_kib) ||
+        s.some.avg10 >= cfg.psi.avg10_crit)
         return State::Red;
-    if (s.mem_available_kib <= cfg.mem.available_warn_kib)
+    if (s.mem_available_kib && *s.mem_available_kib <= cfg.mem.available_warn_kib)
         return State::Orange;
     if (s.some.avg10 >= cfg.psi.avg10_warn)
         return State::Yellow;
