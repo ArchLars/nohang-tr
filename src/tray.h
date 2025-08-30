@@ -58,4 +58,6 @@ private:
     std::unique_ptr<SystemProbe> probe_;
     State state_ = State::Green;
     std::optional<double> prevSomeAvg10_;
+    QString tooltipCache_;
+    std::optional<ProbeSample> tooltipSample_;
 };
