@@ -1,4 +1,7 @@
-<!-- Minimal placeholder icon, color varies -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- health-good.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16" aria-label="System health good">
+  <!-- Shield -->
   <path fill="#2ecc71" d="M32 4l20 8v16c0 14-9.6 26.4-20 32-10.4-5.6-20-18-20-32V12z"/>
+  <!-- ECG -->
+  <path d="M12 36h10l4-8 6 16 6-24 4 16h10" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
