@@ -111,6 +111,25 @@ TEST_CASE("buildTooltip uses lowest memory indicator") {
   REQUIRE(tip.find("style='color:red'>██████████") != std::string::npos);
 }
 
+TEST_CASE("buildTooltip lists PSI triggers") {
+  AppConfig cfg;
+  cfg.psi.trigger.some = AppConfig::Psi::Trigger{10, 100};
+  cfg.psi.trigger.full = AppConfig::Psi::Trigger{20, 200};
+  ProbeSample s; // defaults ok
+  auto tip = Tray::buildTooltip(s, cfg, Tray::State::Green).toStdString();
+  REQUIRE(tip.find("trigger some: 10us/100us") != std::string::npos);
+  REQUIRE(tip.find("trigger full: 20us/200us") != std::string::npos);
+}
+
+TEST_CASE("buildTooltip defaults to white for unknown state") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_warn_kib; // ensure bar rendered
+  auto tip =
+      Tray::buildTooltip(s, cfg, static_cast<Tray::State>(99)).toStdString();
+  REQUIRE(tip.find("style='color:white'") != std::string::npos);
+}
+
 TEST_CASE("decide returns expected state") {
   AppConfig cfg;
   ProbeSample s;
@@ -389,4 +408,56 @@ TEST_CASE("refresh updates tooltip on threshold crossing") {
   probe->s.mem_available_kib = cfg.mem.available_warn_kib - cfg.mem.available_warn_kib / 50;
   tray.refresh();
   CHECK(tray.icon_.toolTip() != tipAbove);
+}
+
+TEST_CASE("refresh updates tooltip when MemAvailable vanishes") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_warn_kib * 2;
+  s.some.avg10 = 0.0;
+  auto *probe = new StubProbe(s);
+  Tray tray(nullptr, std::unique_ptr<SystemProbe>(probe));
+  applyPalette(tray);
+
+  tray.refresh();
+  auto tipWith = tray.icon_.toolTip();
+
+  probe->s.mem_available_kib = std::nullopt;
+  tray.refresh();
+  CHECK(tray.icon_.toolTip() != tipWith);
+}
+
+TEST_CASE("refresh updates tooltip on PSI some change") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_warn_kib * 2;
+  s.some.avg10 = 0.1;
+  auto *probe = new StubProbe(s);
+  Tray tray(nullptr, std::unique_ptr<SystemProbe>(probe));
+  applyPalette(tray);
+
+  tray.refresh();
+  auto tip = tray.icon_.toolTip();
+
+  probe->s.some.avg10 = 0.2; // >5% diff
+  tray.refresh();
+  CHECK(tray.icon_.toolTip() != tip);
+}
+
+TEST_CASE("refresh updates tooltip on PSI full change") {
+  AppConfig cfg;
+  ProbeSample s;
+  s.mem_available_kib = cfg.mem.available_warn_kib * 2;
+  s.some.avg10 = 0.0;
+  s.full.avg10 = 0.1;
+  auto *probe = new StubProbe(s);
+  Tray tray(nullptr, std::unique_ptr<SystemProbe>(probe));
+  applyPalette(tray);
+
+  tray.refresh();
+  auto tip = tray.icon_.toolTip();
+
+  probe->s.full.avg10 = 0.2; // >5% diff
+  tray.refresh();
+  CHECK(tray.icon_.toolTip() != tip);
 }
