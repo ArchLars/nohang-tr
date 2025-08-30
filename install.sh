@@ -5,7 +5,7 @@ set -euo pipefail
 sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
 
 echo "[install] installing dependencies"
-sudo pacman -Sy --noconfirm
+sudo pacman -Syu --noconfirm
 if [ -f pacman-packages.txt ]; then
   xargs -a pacman-packages.txt -r sudo pacman -S --needed --noconfirm
 fi
