@@ -67,6 +67,7 @@ TEST_CASE("load values from example config") {
     CHECK(cfg.mem.available_crit_kib == 262144);
     CHECK(cfg.palette.green.endsWith("shield-green.svg"));
     CHECK(cfg.palette.red.endsWith("shield-red.svg"));
+    CHECK(cfg.palette.black.endsWith("shield-black.svg"));
     CHECK(cfg.sample_interval_ms == 2000);
 
     if (oldXdg.isNull())

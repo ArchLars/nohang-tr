@@ -193,6 +193,8 @@ bool AppConfig::load(const QString& path) {
                     palette.orange = value;
                 else if (key == "red")
                     palette.red = value;
+                else if (key == "black")
+                    palette.black = value;
             } else if (section == "sample") {
                 int v = value.toInt(&ok);
                 if (ok && key == "interval_ms")

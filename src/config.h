@@ -40,6 +40,7 @@ struct AppConfig {
         QString yellow = "res/icons/shield-yellow.svg";
         QString orange = "res/icons/shield-orange.svg";
         QString red = "res/icons/shield-red.svg";
+        QString black = "res/icons/shield-black.svg";
     } palette;
 
     int sample_interval_ms = 2000;
