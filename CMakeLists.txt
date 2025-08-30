@@ -28,6 +28,8 @@ if(AyatanaAppIndicator3_FOUND)
   add_compile_definitions(HAVE_AYATANA_APPINDICATOR3=1)
 endif()
 
+enable_testing()
+
 add_subdirectory(src)
 add_subdirectory(tests)
 
