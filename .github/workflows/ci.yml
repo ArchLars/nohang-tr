@@ -26,6 +26,10 @@ jobs:
           xargs -a apt-packages.txt sudo apt-get -yq --download-only install
           xargs -a apt-packages.txt sudo apt-get -yq install
 
+      - name: Fix APT cache permissions
+        run: |
+          sudo chown -R $USER:$USER /var/cache/apt/archives /var/lib/apt/lists
+
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
