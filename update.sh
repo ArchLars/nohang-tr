@@ -2,6 +2,11 @@
 # Pulls latest changes and rebuilds modified targets.
 set -euo pipefail
 
+sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
+
+echo "[update] updating system packages"
+sudo pacman -Syu --noconfirm
+
 echo "[update] pulling latest changes"
 git pull --ff-only
 

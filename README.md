@@ -27,6 +27,10 @@ need AppIndicator support.
 
 Run `./install.sh` to install dependencies and build the project:
 
+The provided scripts assume an Arch Linux environment and use `pacman` for
+package management. The `apt-packages.txt` file remains for compatibility
+with other tooling.
+
 ```bash
 ./install.sh
 ```
