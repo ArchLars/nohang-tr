@@ -1,6 +1,7 @@
 #include "config.h"
 #include <QFile>
 #include <QTextStream>
+#include <QRegularExpression>
 #include <cstdlib>
 #include <filesystem>
 
@@ -42,6 +43,20 @@ bool AppConfig::load(const QString& path) {
                     psi.avg10_crit = v;
                 else if (key == "avg10_crit_exit")
                     psi.avg10_crit_exit = v;
+            }
+        } else if (section == "psi.trigger") {
+            auto parts = value.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+            if (parts.size() == 2) {
+                long stall = parts[0].toLong(&ok);
+                bool ok2 = false;
+                long window = parts[1].toLong(&ok2);
+                if (ok && ok2) {
+                    Psi::Trigger trig{stall, window};
+                    if (key == "some")
+                        psi.trigger.some = trig;
+                    else if (key == "full")
+                        psi.trigger.full = trig;
+                }
             }
         } else if (section == "mem") {
             long v = value.toLong(&ok);

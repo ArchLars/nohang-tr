@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
 #include <sstream>
+#include <filesystem>
+#include <fstream>
+#include <vector>
 #include "system_probe.h"
 
 TEST_CASE("parse MemAvailable returns value") {
@@ -60,4 +63,56 @@ TEST_CASE("sample provides non-negative values") {
     } else {
         SUCCEED("PSI data unavailable");
     }
+}
+
+TEST_CASE("sample reads from provided paths") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_sample";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    fs::path psi = dir / "pressure";
+    {
+        std::ofstream out(mem);
+        out << "MemAvailable: 123 kB\n";
+    }
+    {
+        std::ofstream out(psi);
+        out << "some avg10=1 avg60=2 avg300=3 total=4\n";
+        out << "full avg10=5 avg60=6 avg300=7 total=8\n";
+    }
+    SystemProbe probe(mem.string(), psi.string());
+    auto s = probe.sample();
+    REQUIRE(s);
+    REQUIRE(s->mem_available_kib);
+    CHECK(*s->mem_available_kib == 123);
+    CHECK(s->some.total == 4);
+    CHECK(s->full.total == 8);
+}
+
+TEST_CASE("enableTriggers writes thresholds") {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / "psi_triggers";
+    fs::create_directories(dir);
+    fs::path mem = dir / "meminfo";
+    fs::path psi = dir / "pressure";
+    fs::path trig = dir / "trig";
+    {
+        std::ofstream out(mem);
+        out << "MemAvailable: 0 kB\n";
+    }
+    {
+        std::ofstream out(psi);
+        out << "some avg10=0 avg60=0 avg300=0 total=0\n";
+        out << "full avg10=0 avg60=0 avg300=0 total=0\n";
+    }
+    {
+        std::ofstream out(trig);
+    }
+    SystemProbe probe(mem.string(), psi.string());
+    SystemProbe::Trigger t{SystemProbe::PsiType::Some, 10, 100};
+    REQUIRE(probe.enableTriggers(trig.string(), {t}));
+    std::ifstream in(trig);
+    std::string line;
+    std::getline(in, line);
+    CHECK(line == "some 10 100");
 }

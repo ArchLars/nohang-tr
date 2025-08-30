@@ -1,6 +1,8 @@
 #include <catch2/catch_all.hpp>
 #include <QCoreApplication>
 #include <QDir>
+#include <QTemporaryFile>
+#include <QTextStream>
 #include "config.h"
 
 namespace {
@@ -28,4 +30,22 @@ TEST_CASE("load values from example config") {
     CHECK(cfg.palette.green.endsWith("shield-green.svg"));
     CHECK(cfg.palette.red.endsWith("shield-red.svg"));
     CHECK(cfg.sample_interval_ms == 2000);
+}
+
+TEST_CASE("load PSI trigger thresholds from config") {
+    QTemporaryFile tmp;
+    REQUIRE(tmp.open());
+    QTextStream ts(&tmp);
+    ts << "[psi.trigger]\n";
+    ts << "some = \"10 100\"\n";
+    ts << "full = \"20 200\"\n";
+    ts.flush();
+    AppConfig cfg;
+    REQUIRE(cfg.load(tmp.fileName()));
+    REQUIRE(cfg.psi.trigger.some);
+    CHECK(cfg.psi.trigger.some->stall_us == 10);
+    CHECK(cfg.psi.trigger.some->window_us == 100);
+    REQUIRE(cfg.psi.trigger.full);
+    CHECK(cfg.psi.trigger.full->stall_us == 20);
+    CHECK(cfg.psi.trigger.full->window_us == 200);
 }

@@ -1,12 +1,21 @@
 #pragma once
 #include <QString>
+#include <optional>
 
 struct AppConfig {
-    struct {
+    struct Psi {
+        struct Trigger {
+            long stall_us = 0;
+            long window_us = 0;
+        };
         double avg10_warn = 0.5;
         double avg10_warn_exit = 0.5;
         double avg10_crit = 1.0;
         double avg10_crit_exit = 1.0;
+        struct {
+            std::optional<Trigger> some;
+            std::optional<Trigger> full;
+        } trigger;
     } psi;
 
     struct {
