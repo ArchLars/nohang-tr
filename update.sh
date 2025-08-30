@@ -6,6 +6,9 @@ sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
 
 echo "[update] updating system packages"
 sudo pacman -Syu --noconfirm
+if [ -f pacman-packages.txt ]; then
+  xargs -a pacman-packages.txt -r sudo pacman -S --needed --noconfirm
+fi
 
 echo "[update] pulling latest changes"
 git pull --ff-only

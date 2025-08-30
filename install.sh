@@ -6,8 +6,8 @@ sudo() { command sudo -n "$@" 2>/dev/null || "$@"; }
 
 echo "[install] installing dependencies"
 sudo pacman -Syu --noconfirm
-if [ -f apt-packages.txt ]; then
-  xargs -a apt-packages.txt -r sudo pacman -S --needed --noconfirm
+if [ -f pacman-packages.txt ]; then
+  xargs -a pacman-packages.txt -r sudo pacman -S --needed --noconfirm
 fi
 
 echo "[install] configuring"

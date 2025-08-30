@@ -1,0 +1,11 @@
+base-devel
+cmake
+ninja
+qt6-base
+libayatana-appindicator
+glib2
+dbus
+pkgconf
+catch2
+gcovr
+nohang
